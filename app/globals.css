@@ -2,16 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-}
-
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -33,11 +23,6 @@ body {
     --border: 0 0% 89.8%;
     --input: 0 0% 89.8%;
     --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
     --radius: 0.5rem;
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -48,6 +33,7 @@ body {
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
   .dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
@@ -90,5 +76,56 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    @apply text-base leading-relaxed;
+  }
+  h1 {
+    @apply text-5xl font-bold tracking-tight mb-6;
+    letter-spacing: -0.025em;
+  }
+  h2 {
+    @apply text-4xl font-semibold tracking-tight mb-4;
+    letter-spacing: -0.025em;
+  }
+  h3 {
+    @apply text-2xl font-semibold tracking-tight mb-3;
+    letter-spacing: -0.025em;
+  }
+  h4 {
+    @apply text-xl font-semibold tracking-tight mb-2;
+    letter-spacing: -0.025em;
+  }
+  p {
+    @apply text-base leading-7 mb-4;
+  }
+  a {
+    @apply font-medium text-primary hover:text-primary/80 transition-colors;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@layer components {
+  .nav-link {
+    @apply text-sm font-medium text-muted-foreground hover:text-primary transition-colors;
+  }
+  .card-title {
+    @apply text-xl font-semibold tracking-tight mb-2;
+  }
+  .card-description {
+    @apply text-sm text-muted-foreground leading-relaxed;
+  }
+  .button-text {
+    @apply text-sm font-medium;
+  }
+  .input-label {
+    @apply text-sm font-medium mb-1.5 block;
+  }
+  .section-title {
+    @apply text-2xl font-semibold tracking-tight mb-6;
+  }
+  .subsection-title {
+    @apply text-lg font-medium mb-4;
   }
 }

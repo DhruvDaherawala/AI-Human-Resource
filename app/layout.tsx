@@ -1,6 +1,13 @@
 import './globals.css'
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
+
+const inter = Inter({ 
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+})
 
 export const metadata: Metadata = {
   title: 'AI HR System',
@@ -13,37 +20,25 @@ interface RootLayoutProps {
 
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
-    <html lang="en">
-      <body>
+    <html lang="en" className={inter.variable}>
+      <body className="font-sans antialiased">
         <div className="min-h-screen flex flex-col">
           <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
-              <Link href="/" className="text-lg font-semibold">
+              <Link href="/" className="text-lg font-semibold tracking-tight hover:text-primary/80 transition-colors">
                 AI Resume Screening
               </Link>
               <nav className="ml-auto flex gap-4 sm:gap-6">
-                <Link 
-                  href="/dashboard" 
-                  className="text-sm font-medium transition-colors hover:text-primary"
-                >
+                <Link href="/dashboard" className="nav-link">
                   Dashboard
                 </Link>
-                <Link 
-                  href="/jobs" 
-                  className="text-sm font-medium transition-colors hover:text-primary"
-                >
+                <Link href="/jobs" className="nav-link">
                   Jobs
                 </Link>
-                <Link 
-                  href="/candidates" 
-                  className="text-sm font-medium transition-colors hover:text-primary"
-                >
+                <Link href="/candidates" className="nav-link">
                   Candidates
                 </Link>
-                <Link 
-                  href="/settings" 
-                  className="text-sm font-medium transition-colors hover:text-primary"
-                >
+                <Link href="/settings" className="nav-link">
                   Settings
                 </Link>
               </nav>
@@ -58,10 +53,10 @@ export default function RootLayout({ children }: RootLayoutProps) {
                 Built by AI HR Team. All rights reserved.
               </p>
               <div className="flex gap-4">
-                <Link href="/terms" className="text-sm text-muted-foreground hover:underline">
+                <Link href="/terms" className="nav-link">
                   Terms
                 </Link>
-                <Link href="/privacy" className="text-sm text-muted-foreground hover:underline">
+                <Link href="/privacy" className="nav-link">
                   Privacy
                 </Link>
               </div>
