@@ -10,25 +10,6 @@ export const metadata: Metadata = {
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="border-b">
-        <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
-          <h1 className="text-lg font-semibold">AI Resume Screening</h1>
-          <nav className="ml-auto flex gap-4 sm:gap-6">
-            <Link href="/dashboard" className="text-sm font-medium hover:underline underline-offset-4">
-              Dashboard
-            </Link>
-            <Link href="/jobs" className="text-sm font-medium hover:underline underline-offset-4">
-              Jobs
-            </Link>
-            <Link href="/candidates" className="text-sm font-medium hover:underline underline-offset-4">
-              Candidates
-            </Link>
-            <Link href="/settings" className="text-sm font-medium hover:underline underline-offset-4">
-              Settings
-            </Link>
-          </nav>
-        </div>
-      </header>
       <main className="flex-1">
         <section className="w-full py-12 md:py-24 lg:py-32 bg-muted">
           <div className="container px-4 md:px-6">

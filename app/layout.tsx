@@ -1,12 +1,17 @@
 import './globals.css'
 import Link from 'next/link'
+import type { Metadata } from 'next'
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'AI HR System',
   description: 'AI-powered Human Resource Management System',
 }
 
-export default function RootLayout({ children }) {
+interface RootLayoutProps {
+  children: React.ReactNode
+}
+
+export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en">
       <body>

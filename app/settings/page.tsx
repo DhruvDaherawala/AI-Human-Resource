@@ -1,8 +1,9 @@
-import { Button } from '@/components/ui/button'
+import type { Metadata } from "next"
+import { Button } from "@/components/ui/button"
 
-export const metadata = {
-  title: 'Settings - AI HR System',
-  description: 'Manage your account settings and preferences',
+export const metadata: Metadata = {
+  title: "Settings - AI HR System",
+  description: "Manage your account settings and preferences",
 }
 
 export default function SettingsPage() {
@@ -12,31 +13,31 @@ export default function SettingsPage() {
       
       <div className="grid gap-8">
         {/* Profile Settings */}
-        <section className="border rounded-lg p-6">
+        <div className="border rounded-lg p-6 bg-card">
           <h2 className="text-xl font-semibold mb-4">Profile Settings</h2>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Company Name</label>
+              <label className="text-sm font-medium">Company Name</label>
               <input
                 type="text"
-                className="w-full px-3 py-2 border rounded-md"
-                placeholder="Enter company name"
+                className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                placeholder="Enter your company name"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Email</label>
+              <label className="text-sm font-medium">Email</label>
               <input
                 type="email"
-                className="w-full px-3 py-2 border rounded-md"
-                placeholder="Enter email"
+                className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                placeholder="Enter your email"
               />
             </div>
             <Button>Save Changes</Button>
           </div>
-        </section>
+        </div>
 
         {/* Notification Settings */}
-        <section className="border rounded-lg p-6">
+        <div className="border rounded-lg p-6 bg-card">
           <h2 className="text-xl font-semibold mb-4">Notification Settings</h2>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -44,51 +45,51 @@ export default function SettingsPage() {
                 <h3 className="font-medium">Email Notifications</h3>
                 <p className="text-sm text-muted-foreground">Receive email updates about your account</p>
               </div>
-              <input type="checkbox" className="h-4 w-4" />
+              <input type="checkbox" className="h-4 w-4 rounded border-gray-300" />
             </div>
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-medium">Application Alerts</h3>
                 <p className="text-sm text-muted-foreground">Get notified when new candidates apply</p>
               </div>
-              <input type="checkbox" className="h-4 w-4" />
+              <input type="checkbox" className="h-4 w-4 rounded border-gray-300" />
             </div>
           </div>
-        </section>
+        </div>
 
         {/* AI Screening Settings */}
-        <section className="border rounded-lg p-6">
+        <div className="border rounded-lg p-6 bg-card">
           <h2 className="text-xl font-semibold mb-4">AI Screening Settings</h2>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Minimum Match Percentage</label>
+              <label className="text-sm font-medium">Minimum Match Percentage</label>
               <input
                 type="range"
                 min="0"
                 max="100"
-                className="w-full"
+                className="mt-1 block w-full"
               />
             </div>
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-medium">Auto-Shortlist</h3>
-                <p className="text-sm text-muted-foreground">Automatically shortlist candidates based on AI analysis</p>
+                <p className="text-sm text-muted-foreground">Automatically shortlist candidates above threshold</p>
               </div>
-              <input type="checkbox" className="h-4 w-4" />
+              <input type="checkbox" className="h-4 w-4 rounded border-gray-300" />
             </div>
           </div>
-        </section>
+        </div>
 
         {/* Danger Zone */}
-        <section className="border border-destructive rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-destructive mb-4">Danger Zone</h2>
+        <div className="border rounded-lg p-6 bg-card border-destructive">
+          <h2 className="text-xl font-semibold mb-4 text-destructive">Danger Zone</h2>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
               Once you delete your account, there is no going back. Please be certain.
             </p>
             <Button variant="destructive">Delete Account</Button>
           </div>
-        </section>
+        </div>
       </div>
     </div>
   )
