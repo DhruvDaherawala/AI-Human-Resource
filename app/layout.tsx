@@ -6,6 +6,7 @@ import { Inter } from 'next/font/google'
 import { useEffect } from 'react'
 import { ThemeProvider } from "@/components/theme-provider"
 import { ModeToggle } from "@/components/mode-toggle"
+import { Toaster } from 'react-hot-toast'
 import smoothscroll from 'smoothscroll-polyfill'
 
 const inter = Inter({ 
@@ -36,27 +37,28 @@ export default function RootLayout({ children }: RootLayoutProps) {
           enableSystem
           disableTransitionOnChange
         >
+          <Toaster position="top-right" />
           <div className="min-h-screen flex flex-col">
             <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-              <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="w-full px-4 sm:px-6 lg:px-8">
                 <div className="flex h-16 items-center">
                   <Link 
                     href="/" 
-                    className="inline-flex items-center px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-all duration-200 font-semibold tracking-tight"
+                    className="inline-flex items-center px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-all duration-200 font-semibold tracking-tight smooth-scroll"
                   >
                     AI Resume Screening
                   </Link>
                   <nav className="ml-auto flex items-center gap-4 sm:gap-6">
-                    <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                    <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors smooth-scroll">
                       Dashboard
                     </Link>
-                    <Link href="/jobs" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                    <Link href="/jobs" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors smooth-scroll">
                       Jobs
                     </Link>
-                    <Link href="/candidates" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                    <Link href="/candidates" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors smooth-scroll">
                       Candidates
                     </Link>
-                    <Link href="/settings" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                    <Link href="/settings" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors smooth-scroll">
                       Settings
                     </Link>
                     <ModeToggle />
@@ -65,12 +67,12 @@ export default function RootLayout({ children }: RootLayoutProps) {
               </div>
             </header>
             <main className="flex-1">
-              <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+              <div className="w-full px-4 sm:px-6 lg:px-8 py-6 md:py-8">
                 {children}
               </div>
             </main>
             <footer className="border-t py-3 md:py-4">
-              <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="w-full px-4 sm:px-6 lg:px-8">
                 <div className="flex flex-col items-center justify-between gap-3 md:h-16 md:flex-row">
                   <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
                     Built by AI HR Team. All rights reserved.

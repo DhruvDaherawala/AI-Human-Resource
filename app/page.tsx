@@ -25,7 +25,7 @@ export default function Home() {
                 </p>
               </div>
               <div className="flex flex-col gap-4 min-[400px]:flex-row">
-                <Button asChild size="lg" className="gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white shadow-lg hover:shadow-primary/25 transition-all duration-300">
+                <Button asChild size="lg" className="gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white hover:text-gray-900 shadow-lg hover:shadow-primary/25 transition-all duration-300">
                   <Link href="/upload">
                     Start Uploading Resumes
                     <ArrowRight className="h-4 w-4" />
@@ -95,7 +95,7 @@ export default function Home() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-4 min-[400px]:flex-row">
-                  <Button asChild size="lg" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white shadow-lg hover:shadow-primary/25 transition-all duration-300">
+                  <Button asChild size="lg" className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white hover:text-gray-900 shadow-lg hover:shadow-primary/25 transition-all duration-300">
                     <Link href="/dashboard">View Dashboard</Link>
                   </Button>
                   <Button asChild size="lg" variant="outline" className="border-2 hover:bg-primary/10 hover:text-primary transition-all duration-300">

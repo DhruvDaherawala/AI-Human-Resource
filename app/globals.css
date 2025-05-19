@@ -3,6 +3,45 @@
 @tailwind utilities;
 
 @layer base {
+  /* Smooth Scroll Behavior */
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 80px; /* Accounts for fixed header */
+  }
+
+  /* Custom Smooth Scroll Animation */
+  .smooth-scroll {
+    scroll-behavior: smooth;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Modern Scrollbar Styles */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+  }
+
+  /* Webkit (Chrome, Safari, Edge) Scrollbar Styles */
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 20px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.5);
+  }
+
   :root {
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
@@ -73,9 +112,6 @@
 @layer base {
   * {
     @apply border-border;
-  }
-  html {
-    scroll-behavior: smooth;
   }
   body {
     @apply bg-background text-foreground;
