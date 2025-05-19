@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowRight, Upload, Target, Sparkles } from "lucide-react"
 
 export const metadata: Metadata = {
-  title: "AI Resume Screening System",
+  title: "AI-Powered Human Resource System",
   description: "Automate your resume screening process with AI",
 }
 
@@ -18,7 +18,7 @@ export default function Home() {
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
                 <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl">
-                  AI-Powered Resume Screening
+                  AI-Powered Human Resource System
                 </h1>
                 <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl">
                   Upload resumes, set your criteria, and let our AI find the best candidates for your job openings.
