@@ -15,14 +15,14 @@ export default function Home() {
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl">AI-Powered Resume Screening</h1>
-                <p className="max-w-[700px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                <h1 className="text-2xl font-bold tracking-tighter sm:text-3xl">AI-Powered Resume Screening</h1>
+                <p className="max-w-[700px] text-sm text-muted-foreground md:text-base/relaxed lg:text-sm/relaxed xl:text-base/relaxed">
                   Upload resumes, set your criteria, and let our AI find the best candidates for your job openings.
                 </p>
               </div>
               <div className="w-full max-w-sm space-y-2">
                 <div className="flex justify-center">
-                  <Button asChild size="lg">
+                  <Button asChild size="sm">
                     <Link href="/upload">Start Uploading Resumes</Link>
                   </Button>
                 </div>
@@ -35,7 +35,7 @@ export default function Home() {
             <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
               <div className="rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
                 <div className="flex flex-col space-y-1.5">
-                  <h3 className="text-2xl font-semibold leading-none tracking-tight">Upload Resumes</h3>
+                  <h3 className="text-lg font-semibold leading-none tracking-tight">Upload Resumes</h3>
                   <p className="text-sm text-muted-foreground">
                     Batch upload multiple PDF resumes at once to save time.
                   </p>
@@ -43,7 +43,7 @@ export default function Home() {
               </div>
               <div className="rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
                 <div className="flex flex-col space-y-1.5">
-                  <h3 className="text-2xl font-semibold leading-none tracking-tight">Define Criteria</h3>
+                  <h3 className="text-lg font-semibold leading-none tracking-tight">Define Criteria</h3>
                   <p className="text-sm text-muted-foreground">
                     Set custom requirements for each job position to find the perfect match.
                   </p>
@@ -51,7 +51,7 @@ export default function Home() {
               </div>
               <div className="rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
                 <div className="flex flex-col space-y-1.5">
-                  <h3 className="text-2xl font-semibold leading-none tracking-tight">AI Shortlisting</h3>
+                  <h3 className="text-lg font-semibold leading-none tracking-tight">AI Shortlisting</h3>
                   <p className="text-sm text-muted-foreground">
                     Our AI analyzes resumes and ranks candidates based on your criteria.
                   </p>
@@ -65,10 +65,10 @@ export default function Home() {
             <div className="mx-auto grid max-w-5xl items-center gap-6 py-12 lg:grid-cols-2 lg:gap-12">
               <div className="flex flex-col justify-center space-y-4">
                 <div className="space-y-2">
-                  <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+                  <h2 className="text-2xl font-bold tracking-tighter sm:text-3xl md:text-4xl">
                     Eliminate Bias, Save Time
                   </h2>
-                  <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                  <p className="max-w-[600px] text-sm text-muted-foreground md:text-base/relaxed lg:text-sm/relaxed xl:text-base/relaxed">
                     Our AI-powered system helps eliminate unconscious bias in the hiring process while saving you hours
                     of manual resume screening.
                   </p>
@@ -76,7 +76,7 @@ export default function Home() {
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
                   <Link
                     href="/learn-more"
-                    className="inline-flex h-10 items-center justify-center rounded-md border border-input bg-background px-8 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+                    className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
                   >
                     Learn More
                   </Link>

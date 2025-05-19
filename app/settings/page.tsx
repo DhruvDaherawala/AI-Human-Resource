@@ -8,13 +8,13 @@ export const metadata: Metadata = {
 
 export default function SettingsPage() {
   return (
-    <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
-      <h1 className="text-3xl font-bold mb-8">Settings</h1>
+    <div>
+      <h1 className="text-2xl font-bold mb-6">Settings</h1>
       
-      <div className="grid gap-8">
+      <div className="grid gap-6">
         {/* Profile Settings */}
-        <div className="border rounded-lg p-6 bg-card">
-          <h2 className="text-xl font-semibold mb-4">Profile Settings</h2>
+        <div className="border rounded-lg p-5 bg-card">
+          <h2 className="text-lg font-semibold mb-4">Profile Settings</h2>
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium">Company Name</label>
@@ -37,19 +37,19 @@ export default function SettingsPage() {
         </div>
 
         {/* Notification Settings */}
-        <div className="border rounded-lg p-6 bg-card">
-          <h2 className="text-xl font-semibold mb-4">Notification Settings</h2>
+        <div className="border rounded-lg p-5 bg-card">
+          <h2 className="text-lg font-semibold mb-4">Notification Settings</h2>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-medium">Email Notifications</h3>
+                <h3 className="text-sm font-medium">Email Notifications</h3>
                 <p className="text-sm text-muted-foreground">Receive email updates about your account</p>
               </div>
               <input type="checkbox" className="h-4 w-4 rounded border-gray-300" />
             </div>
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-medium">Application Alerts</h3>
+                <h3 className="text-sm font-medium">Application Alerts</h3>
                 <p className="text-sm text-muted-foreground">Get notified when new candidates apply</p>
               </div>
               <input type="checkbox" className="h-4 w-4 rounded border-gray-300" />
@@ -58,8 +58,8 @@ export default function SettingsPage() {
         </div>
 
         {/* AI Screening Settings */}
-        <div className="border rounded-lg p-6 bg-card">
-          <h2 className="text-xl font-semibold mb-4">AI Screening Settings</h2>
+        <div className="border rounded-lg p-5 bg-card">
+          <h2 className="text-lg font-semibold mb-4">AI Screening Settings</h2>
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium">Minimum Match Percentage</label>
@@ -72,7 +72,7 @@ export default function SettingsPage() {
             </div>
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-medium">Auto-Shortlist</h3>
+                <h3 className="text-sm font-medium">Auto-Shortlist</h3>
                 <p className="text-sm text-muted-foreground">Automatically shortlist candidates above threshold</p>
               </div>
               <input type="checkbox" className="h-4 w-4 rounded border-gray-300" />
@@ -81,8 +81,8 @@ export default function SettingsPage() {
         </div>
 
         {/* Danger Zone */}
-        <div className="border rounded-lg p-6 bg-card border-destructive">
-          <h2 className="text-xl font-semibold mb-4 text-destructive">Danger Zone</h2>
+        <div className="border rounded-lg p-5 bg-card">
+          <h2 className="text-lg font-semibold mb-4 text-destructive">Danger Zone</h2>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
               Once you delete your account, there is no going back. Please be certain.

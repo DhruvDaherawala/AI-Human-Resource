@@ -142,12 +142,12 @@ export function CandidatesList() {
                 </Avatar>
                 <div>
                   <div className="flex items-center space-x-2">
-                    <h3 className="font-medium">{candidate.name}</h3>
+                    <h3 className="text-sm font-medium">{candidate.name}</h3>
                     <div className={`h-2 w-2 rounded-full ${getStatusColor(candidate.status)}`} />
-                    <span className="text-sm text-muted-foreground">{candidate.status}</span>
+                    <span className="text-xs text-muted-foreground">{candidate.status}</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">{candidate.role}</p>
-                  <p className="text-sm text-muted-foreground">{candidate.location}</p>
+                  <p className="text-xs text-muted-foreground">{candidate.role}</p>
+                  <p className="text-xs text-muted-foreground">{candidate.location}</p>
                   <div className="flex flex-wrap gap-1 mt-2">
                     {candidate.skills.slice(0, 3).map((skill, index) => (
                       <Badge key={index} variant="secondary" className="text-xs">
