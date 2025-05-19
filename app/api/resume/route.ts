@@ -1,6 +1,5 @@
-import { NextResponse } from 'next/server';
-import clientPromise from '@/lib/mongodb';
-import { ObjectId } from 'mongodb';
+import { NextResponse } from "next/server";
+import clientPromise from "@/utils/dbConnect";
 
 // Maximum file size (5MB)
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -12,7 +11,7 @@ export async function POST(request: Request) {
     
     if (!file) {
       return NextResponse.json(
-        { error: 'No file uploaded' },
+        { error: "No file uploaded" },
         { status: 400 }
       );
     }
@@ -50,24 +49,18 @@ export async function POST(request: Request) {
       size: file.size,
       data: buffer,
       uploadDate: new Date(),
-      status: 'pending',
-      processingStatus: 'uploaded'
+      status: 'pending'
     });
-
-    if (!result.acknowledged) {
-      throw new Error('Failed to save file to database');
-    }
 
     return NextResponse.json({
       message: 'Resume uploaded successfully',
-      id: result.insertedId,
-      filename: file.name,
-      size: file.size
-    }, { status: 200 });
+      fileId: result.insertedId
+    });
+
   } catch (error) {
     console.error('Error uploading resume:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Error uploading resume. Please try again.' },
+      { error: "Error uploading resume" },
       { status: 500 }
     );
   }
@@ -98,4 +91,4 @@ export async function GET() {
       { status: 500 }
     );
   }
-} 
+}

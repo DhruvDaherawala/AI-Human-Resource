@@ -7,18 +7,25 @@
  */
 export async function uploadResumes(files) {
   try {
-    // In a real app, you would:
-    // 1. Upload files to storage (e.g., AWS S3, Vercel Blob)
-    // 2. Process each PDF to extract text and data
-    // 3. Store the extracted data in your database
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || `http://localhost:3000`;
+    
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch(`${baseUrl}/api/resume`, {
+        method: 'POST',
+        body: formData,
+      });
 
-    // Simulate processing delay
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+    }
 
-    // For demo purposes, we'll just return success
-    return { success: true, count: files.length }
+    return { success: true, count: files.length };
   } catch (error) {
-    console.error("Error uploading resumes:", error)
-    throw new Error("Failed to upload resumes")
+    console.error("Error uploading resumes:", error);
+    throw new Error("Failed to upload resumes");
   }
 }
