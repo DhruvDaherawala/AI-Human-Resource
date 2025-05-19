@@ -37,7 +37,30 @@ export default function RootLayout({ children }: RootLayoutProps) {
           enableSystem
           disableTransitionOnChange
         >
-          <Toaster position="top-right" />
+          <Toaster 
+            position="top-right"
+            toastOptions={{
+              duration: 3000,
+              style: {
+                background: '#333',
+                color: '#fff',
+              },
+              success: {
+                duration: 2000,
+                style: {
+                  background: '#4aed88',
+                  color: '#fff',
+                },
+              },
+              error: {
+                duration: 3000,
+                style: {
+                  background: '#ff4b4b',
+                  color: '#fff',
+                },
+              },
+            }}
+          />
           <div className="min-h-screen flex flex-col">
             <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
               <div className="w-full px-4 sm:px-6 lg:px-8">
@@ -57,6 +80,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
                     </Link>
                     <Link href="/candidates" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors smooth-scroll">
                       Candidates
+                    </Link>
+                    <Link href="/resume" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors smooth-scroll">
+                      Resume
                     </Link>
                     <Link href="/settings" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors smooth-scroll">
                       Settings
