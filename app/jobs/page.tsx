@@ -10,8 +10,8 @@ export const metadata: Metadata = {
 export default function JobsPage() {
   return (
     <div>
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold tracking-tight">Jobs</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold tracking-tight flex items-center">Jobs</h1>
         <Button asChild variant="default" size="sm">
           <Link href="/jobs/new">Post New Job</Link>
         </Button>
