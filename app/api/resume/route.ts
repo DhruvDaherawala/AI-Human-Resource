@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
-import clientPromise from "@/utils/dbConnect";
+import Resume from "@/models/Resume";
+import connectDB from "@/lib/mongodb";
 
 // Maximum file size (5MB)
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 export async function POST(request: Request) {
   try {
+    await connectDB();
     const formData = await request.formData();
     const file = formData.get('file') as File;
     
@@ -37,24 +39,21 @@ export async function POST(request: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Connect to MongoDB
-    const client = await clientPromise;
-    const db = client.db('AI-HR');
-    const collection = db.collection('resume');
-
-    // Create document with file data
-    const result = await collection.insertOne({
+    // Create new resume document
+    const resume = new Resume({
       filename: file.name,
       contentType: file.type,
       size: file.size,
       data: buffer,
-      uploadDate: new Date(),
       status: 'pending'
     });
 
+    // Save to database
+    const result = await resume.save();
+
     return NextResponse.json({
       message: 'Resume uploaded successfully',
-      fileId: result.insertedId
+      fileId: result._id
     });
 
   } catch (error) {
@@ -68,20 +67,15 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
-    const client = await clientPromise;
-    const db = client.db('AI-HR');
-    const collection = db.collection('resume');
-    
-    const resumes = await collection.find({}, {
-      projection: {
-        filename: 1,
-        size: 1,
-        uploadDate: 1,
-        status: 1,
-        processingStatus: 1,
-        _id: 1
-      }
-    }).toArray();
+    await connectDB();
+    const resumes = await Resume.find({}, {
+      filename: 1,
+      size: 1,
+      uploadDate: 1,
+      status: 1,
+      processingStatus: 1,
+      _id: 1
+    }).sort({ uploadDate: -1 });
     
     return NextResponse.json(resumes);
   } catch (error) {

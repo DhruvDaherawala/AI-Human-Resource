@@ -18,9 +18,6 @@ export default function CandidatesPage() {
           <h2 className="text-2xl font-bold tracking-tight">Candidates</h2>
           <p className="text-sm text-muted-foreground">View and manage all candidates in your talent pool.</p>
         </div>
-        <Button size="sm" asChild>
-          <Link href="/upload">Upload More Resumes</Link>
-        </Button>
       </div>
 
       <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import clientPromise from "@/utils/dbConnect";
-import { ObjectId } from "mongodb";
+import Resume from "@/models/Resume";
+import connectDB from "@/lib/mongodb";
 
 // DELETE resume
 export async function DELETE(
@@ -8,15 +8,15 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const client = await clientPromise;
-    const db = client.db("AI-HR");
-    const collection = db.collection("resume");
-    const result = await collection.deleteOne({ _id: new ObjectId(params.id) });
-    if (result.deletedCount === 1) {
+    await connectDB();
+    const result = await Resume.findByIdAndDelete(params.id);
+    
+    if (result) {
       return NextResponse.json({ message: "Deleted" });
     }
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   } catch (error) {
+    console.error('Error deleting resume:', error);
     return NextResponse.json({ error: "Delete failed" }, { status: 500 });
   }
 }
@@ -27,19 +27,21 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    await connectDB();
     const { status } = await req.json();
-    const client = await clientPromise;
-    const db = client.db("AI-HR");
-    const collection = db.collection("resume");
-    const result = await collection.updateOne(
-      { _id: new ObjectId(params.id) },
-      { $set: { status } }
+    
+    const result = await Resume.findByIdAndUpdate(
+      params.id,
+      { status },
+      { new: true }
     );
-    if (result.modifiedCount === 1) {
+    
+    if (result) {
       return NextResponse.json({ message: "Updated" });
     }
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   } catch (error) {
+    console.error('Error updating resume:', error);
     return NextResponse.json({ error: "Update failed" }, { status: 500 });
   }
 }

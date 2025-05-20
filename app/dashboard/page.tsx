@@ -25,9 +25,6 @@ export default function DashboardPage() {
               Monitor your resume screening process and candidate shortlisting.
             </p>
           </div>
-          <Button size="sm" asChild>
-            <Link href="/upload">Upload Resumes</Link>
-          </Button>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">

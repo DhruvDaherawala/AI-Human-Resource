@@ -109,7 +109,7 @@ export function RecentUploads() {
           </div>
           <div className="flex justify-end">
             <Button variant="outline" size="sm" asChild>
-              <Link href="/uploads">View All Uploads</Link>
+              <Link href="/candidates">View All Candidates</Link>
             </Button>
           </div>
         </div>

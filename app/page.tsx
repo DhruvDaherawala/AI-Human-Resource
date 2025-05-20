@@ -26,8 +26,8 @@ export default function Home() {
               </div>
               <div className="flex flex-col gap-4 min-[400px]:flex-row">
                 <Button asChild size="lg" className="gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white hover:text-gray-900 shadow-lg hover:shadow-primary/25 transition-all duration-300">
-                  <Link href="/upload">
-                    Start Uploading Resumes
+                  <Link href="/dashboard">
+                    Go to Dashboard
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>

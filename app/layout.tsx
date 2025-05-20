@@ -4,6 +4,7 @@ import './globals.css'
 import Link from 'next/link'
 import { Inter } from 'next/font/google'
 import { useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { ThemeProvider } from "@/components/theme-provider"
 import { ModeToggle } from "@/components/mode-toggle"
 import { Toaster } from 'react-hot-toast'
@@ -20,6 +21,8 @@ interface RootLayoutProps {
 }
 
 export default function RootLayout({ children }: RootLayoutProps) {
+  const pathname = usePathname()
+
   useEffect(() => {
     // Initialize smooth scroll polyfill
     smoothscroll.polyfill()
@@ -27,6 +30,10 @@ export default function RootLayout({ children }: RootLayoutProps) {
     // Remove the cz-shortcut-listen attribute after hydration
     document.body.removeAttribute('cz-shortcut-listen')
   }, [])
+
+  const isActive = (path: string) => {
+    return pathname === path
+  }
 
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
@@ -67,24 +74,49 @@ export default function RootLayout({ children }: RootLayoutProps) {
                 <div className="flex h-16 items-center">
                   <Link 
                     href="/" 
-                    className="inline-flex items-center px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-all duration-200 font-semibold tracking-tight smooth-scroll"
+                    className="inline-flex items-center px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-all duration-200 font-semibold tracking-tight smooth-scroll text-xl"
                   >
-                    AI Resume Screening
+                    JobTune
                   </Link>
                   <nav className="ml-auto flex items-center gap-4 sm:gap-6">
-                    <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors smooth-scroll">
+                    <Link 
+                      href="/dashboard" 
+                      className={`text-sm font-medium transition-colors smooth-scroll ${
+                        isActive('/dashboard') ? 'text-primary' : 'text-muted-foreground hover:text-primary'
+                      }`}
+                    >
                       Dashboard
                     </Link>
-                    <Link href="/jobs" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors smooth-scroll">
+                    <Link 
+                      href="/jobs" 
+                      className={`text-sm font-medium transition-colors smooth-scroll ${
+                        isActive('/jobs') ? 'text-primary' : 'text-muted-foreground hover:text-primary'
+                      }`}
+                    >
                       Jobs
                     </Link>
-                    <Link href="/candidates" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors smooth-scroll">
+                    <Link 
+                      href="/candidates" 
+                      className={`text-sm font-medium transition-colors smooth-scroll ${
+                        isActive('/candidates') ? 'text-primary' : 'text-muted-foreground hover:text-primary'
+                      }`}
+                    >
                       Candidates
                     </Link>
-                    <Link href="/resume" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors smooth-scroll">
+                    <Link 
+                      href="/resume" 
+                      className={`text-sm font-medium transition-colors smooth-scroll ${
+                        isActive('/resume') ? 'text-primary' : 'text-muted-foreground hover:text-primary'
+                      }`}
+                    >
                       Resume
                     </Link>
-                    <Link href="/settings" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors smooth-scroll">
+                    <Link 
+                      href="/settings" 
+                      className={`text-sm font-medium transition-colors smooth-scroll ${
+                        isActive('/settings') ? 'text-primary' : 'text-muted-foreground hover:text-primary'
+                      }`}
+                    >
                       Settings
                     </Link>
                     <ModeToggle />
