@@ -17,6 +17,22 @@ const nextConfig = {
   },
   experimental: {
     serverActions: true,
+    serverComponentsExternalPackages: ['pdfjs-dist'],
+  },
+  webpack: (config) => {
+    config.resolve.alias.canvas = false;
+    config.resolve.alias.encoding = false;
+    
+    // Add rule for PDF.js worker
+    config.module.rules.push({
+      test: /pdf\.worker\.(min\.)?js/,
+      type: 'asset/resource',
+      generator: {
+        filename: 'static/chunks/[name].[hash][ext]',
+      },
+    });
+    
+    return config;
   },
 }
 

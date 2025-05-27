@@ -26,6 +26,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Trash2 } from 'lucide-react';
+import { parseResumeDocument } from '@/lib/resume-parser';
 
 type Resume = {
   _id: string;
@@ -254,39 +255,123 @@ export default function ResumesPage() {
       return;
     }
 
+    console.log('Starting to process resumes...');
     setProcessingAll(true);
+    let hasErrors = false;
+    const errorDetails: { filename: string; error: string }[] = [];
+
     try {
-      const promises = pendingResumes.map(resume => 
-        fetch(`/api/resume/${resume._id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'reviewed' }),
-        })
-      );
+      // Fetch full resume data for each pending resume
+      const resumeDataPromises = pendingResumes.map(async (resume) => {
+        try {
+          console.log(`Fetching resume: ${resume.filename} (ID: ${resume._id})`);
+          const res = await fetch(`/api/resume/${resume._id}`);
+          
+          if (!res.ok) {
+            const errorText = await res.text();
+            const error = `Failed to fetch resume: ${res.statusText} - ${errorText}`;
+            console.error(`Failed to fetch resume ${resume.filename}:`, {
+              status: res.status,
+              statusText: res.statusText,
+              error: errorText
+            });
+            errorDetails.push({ filename: resume.filename, error });
+            throw new Error(error);
+          }
+          
+          const data = await res.json();
+          if (!data || !data.data) {
+            const error = `Invalid resume data: No data field found`;
+            console.error(`Invalid resume data for ${resume.filename}:`, data);
+            errorDetails.push({ filename: resume.filename, error });
+            throw new Error(error);
+          }
 
-      const results = await Promise.all(promises);
-      const allSuccessful = results.every(res => res.ok);
+          console.log('Raw API Response:', {
+            filename: data.filename,
+            hasData: !!data.data,
+            dataType: data.data ? typeof data.data : 'undefined',
+            dataLength: data.data ? data.data.length : 0,
+            contentType: data.contentType
+          });
+          
+          return data;
+        } catch (error) {
+          console.error(`Error fetching resume ${resume.filename}:`, error);
+          hasErrors = true;
+          return null;
+        }
+      });
 
-      if (allSuccessful) {
-        toast.success(`Successfully processed ${pendingResumes.length} resumes!`, {
+      const resumeData = await Promise.all(resumeDataPromises);
+      const validResumeData = resumeData.filter(data => data !== null);
+      console.log('Fetched all resume data:', validResumeData.length);
+      
+      if (validResumeData.length === 0) {
+        throw new Error('No valid resume data found to process');
+      }
+      
+      // Process each resume
+      for (const resume of validResumeData) {
+        try {
+          console.log(`\nProcessing resume: ${resume.filename}`);
+          if (!resume.data) {
+            const error = 'No data found in resume';
+            console.error(error, resume.filename);
+            errorDetails.push({ filename: resume.filename, error });
+            hasErrors = true;
+            continue;
+          }
+          
+          console.log('Starting text extraction...');
+          const extractedText = await parseResumeDocument(resume);
+          
+          if (!extractedText || extractedText.trim().length === 0) {
+            const error = 'No text content extracted from PDF';
+            console.error(error, resume.filename);
+            errorDetails.push({ filename: resume.filename, error });
+            hasErrors = true;
+            continue;
+          }
+
+          console.log('Text extraction successful, length:', extractedText.length);
+          
+          // Update resume status
+          await handleUpdate(resume._id, 'reviewed');
+          console.log('Resume status updated to reviewed');
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          console.error(`Error processing resume ${resume.filename}:`, error);
+          errorDetails.push({ filename: resume.filename, error: errorMessage });
+          hasErrors = true;
+        }
+      }
+
+      if (hasErrors) {
+        const errorMessage = errorDetails.length > 0 
+          ? `Failed to process ${errorDetails.length} resume(s):\n${errorDetails.map(e => `- ${e.filename}: ${e.error}`).join('\n')}`
+          : 'Some resumes failed to process. Check console for details.';
+        
+        toast.error(errorMessage, {
+          style: {
+            background: '#FEE2E2',
+            color: '#991B1B',
+            border: '1px solid #FCA5A5'
+          },
+          duration: 5000 // Show for 5 seconds
+        });
+      } else {
+        toast.success('All resumes processed successfully!', {
           style: {
             background: '#DCFCE7',
             color: '#166534',
             border: '1px solid #86EFAC'
           }
         });
-        fetchResumes();
-      } else {
-        toast.error('Some resumes failed to process. Please try again.', {
-          style: {
-            background: '#FEE2E2',
-            color: '#991B1B',
-            border: '1px solid #FCA5A5'
-          }
-        });
       }
     } catch (error) {
-      toast.error('An error occurred while processing resumes.', {
+      console.error('Error processing resumes:', error);
+      toast.error('Failed to process resumes: ' + (error instanceof Error ? error.message : 'Unknown error'), {
         style: {
           background: '#FEE2E2',
           color: '#991B1B',
@@ -295,6 +380,7 @@ export default function ResumesPage() {
       });
     } finally {
       setProcessingAll(false);
+      fetchResumes(); // Refresh the resume list
     }
   };
 
