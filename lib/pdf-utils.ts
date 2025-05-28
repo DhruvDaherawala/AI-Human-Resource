@@ -6,11 +6,17 @@ import path from 'path';
 export function initializePdfWorker() {
   if (typeof window === 'undefined') {
     // Server-side configuration
-    const pdfjsWorker = path.join(process.cwd(), 'node_modules', 'pdfjs-dist', 'build', 'pdf.worker.min.js');
-    GlobalWorkerOptions.workerSrc = pdfjsWorker;
+    try {
+      // Try to use the worker from node_modules
+      const pdfjsWorker = require.resolve('pdfjs-dist/build/pdf.worker.min.js');
+      GlobalWorkerOptions.workerSrc = pdfjsWorker;
+    } catch (error) {
+      // Fallback to CDN if worker file is not found
+      GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+    }
   } else {
     // Client-side configuration
-    GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+    GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
   }
 }
 
