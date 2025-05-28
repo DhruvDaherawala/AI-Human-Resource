@@ -347,6 +347,22 @@ export default function ResumesPage() {
         }
       }
 
+      const jobsResponse = await fetch('/api/jobs?status=active');
+      const jobs = await jobsResponse.json();
+      
+      // Log the entire job objects to see the structure
+      console.log('Raw Job Data:', jobs);
+      
+      // Log job descriptions and requirements
+      console.log('Active Jobs:', jobs.map((job: any) => {
+        console.log('Individual Job:', job); // Log each job object
+        return {
+          title: job.title,
+          description: job.description,
+          requirements: Array.isArray(job.requirements) ? job.requirements.join(', ') : 'No requirements specified'
+        };
+      }));
+
       if (hasErrors) {
         const errorMessage = errorDetails.length > 0 
           ? `Failed to process ${errorDetails.length} resume(s):\n${errorDetails.map(e => `- ${e.filename}: ${e.error}`).join('\n')}`
