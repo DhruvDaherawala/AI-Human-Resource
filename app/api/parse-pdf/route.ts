@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
-import * as pdfjsLib from 'pdfjs-dist';
-import { getDocument, GlobalWorkerOptions } from 'pdfjs-dist';
+import { initializePdfWorker, extractTextFromPdfData, base64ToUint8Array } from '@/lib/pdf-utils';
 
-// Initialize the PDF.js worker
-GlobalWorkerOptions.workerSrc = require('pdfjs-dist/build/pdf.worker.entry');
+// Initialize PDF.js worker
+initializePdfWorker();
 
 export async function POST(request: Request) {
   try {
@@ -42,14 +41,7 @@ export async function POST(request: Request) {
       }
 
       try {
-        // Remove data URL prefix if present
-        const base64Data = base64.replace(/^data:application\/pdf;base64,/, '');
-        console.log('Processing base64 data, length:', base64Data.length);
-        const binaryString = atob(base64Data);
-        uint8Array = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          uint8Array[i] = binaryString.charCodeAt(i);
-        }
+        uint8Array = base64ToUint8Array(base64);
       } catch (error) {
         console.error('Error decoding base64 data:', error);
         return NextResponse.json(
@@ -77,23 +69,8 @@ export async function POST(request: Request) {
     console.log('Data size:', uint8Array.length, 'bytes');
 
     try {
-      // Load the PDF document
-      const loadingTask = getDocument({ data: uint8Array });
-      const pdfDocument = await loadingTask.promise;
+      const fullText = await extractTextFromPdfData(uint8Array);
       
-      console.log('PDF loaded, number of pages:', pdfDocument.numPages);
-
-      // Extract text from all pages
-      let fullText = '';
-      for (let i = 1; i <= pdfDocument.numPages; i++) {
-        const page = await pdfDocument.getPage(i);
-        const textContent = await page.getTextContent();
-        const pageText = textContent.items
-          .map((item: any) => item.str)
-          .join(' ');
-        fullText += pageText + '\n';
-      }
-
       if (!fullText.trim()) {
         console.log('No text content found in PDF');
         return NextResponse.json(
@@ -103,13 +80,7 @@ export async function POST(request: Request) {
       }
 
       console.log('Successfully parsed PDF, text length:', fullText.length);
-      return NextResponse.json({ 
-        text: fullText,
-        info: {
-          numPages: pdfDocument.numPages,
-          info: await pdfDocument.getMetadata()
-        }
-      });
+      return NextResponse.json({ text: fullText });
     } catch (error) {
       console.error('Error parsing PDF:', error);
       return NextResponse.json(

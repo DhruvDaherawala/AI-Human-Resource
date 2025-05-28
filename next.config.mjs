@@ -23,7 +23,7 @@ const nextConfig = {
     config.resolve.alias.canvas = false;
     config.resolve.alias.encoding = false;
     
-    // Add rule for PDF.js worker
+    // Copy PDF.js worker to public directory
     config.module.rules.push({
       test: /pdf\.worker\.(min\.)?js/,
       type: 'asset/resource',
