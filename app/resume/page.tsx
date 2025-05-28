@@ -261,6 +261,14 @@ export default function ResumesPage() {
     const errorDetails: { filename: string; error: string }[] = [];
 
     try {
+      // Fetch active jobs first
+      const jobsResponse = await fetch('/api/jobs?status=active');
+      const jobs = await jobsResponse.json();
+      
+      if (!jobs || jobs.length === 0) {
+        throw new Error('No active jobs found for evaluation');
+      }
+
       // Fetch full resume data for each pending resume
       const resumeDataPromises = pendingResumes.map(async (resume) => {
         try {
@@ -287,14 +295,6 @@ export default function ResumesPage() {
             throw new Error(error);
           }
 
-          console.log('Raw API Response:', {
-            filename: data.filename,
-            hasData: !!data.data,
-            dataType: data.data ? typeof data.data : 'undefined',
-            dataLength: data.data ? data.data.length : 0,
-            contentType: data.contentType
-          });
-          
           return data;
         } catch (error) {
           console.error(`Error fetching resume ${resume.filename}:`, error);
@@ -335,6 +335,33 @@ export default function ResumesPage() {
           }
 
           console.log('Text extraction successful, length:', extractedText.length);
+
+          // Evaluate resume against each active job
+          for (const job of jobs) {
+            try {
+              console.log(`Evaluating resume against job: ${job.title}`);
+              const evaluation = await fetch('/api/evaluate-resume', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  resumeText: extractedText,
+                  jobDescription: job.description,
+                  jobRequirements: Array.isArray(job.requirements) ? job.requirements.join('\n') : job.requirements
+                })
+              }).then(res => res.json());
+
+              console.log(`AI Evaluation for ${resume.filename} against ${job.title}:`, evaluation);
+            } catch (error) {
+              console.error(`Error evaluating resume ${resume.filename} against job ${job.title}:`, error);
+              errorDetails.push({ 
+                filename: resume.filename, 
+                error: `Failed to evaluate against job ${job.title}: ${error instanceof Error ? error.message : 'Unknown error'}`
+              });
+              hasErrors = true;
+            }
+          }
           
           // Update resume status
           await handleUpdate(resume._id, 'reviewed');
@@ -346,22 +373,6 @@ export default function ResumesPage() {
           hasErrors = true;
         }
       }
-
-      const jobsResponse = await fetch('/api/jobs?status=active');
-      const jobs = await jobsResponse.json();
-      
-      // Log the entire job objects to see the structure
-      console.log('Raw Job Data:', jobs);
-      
-      // Log job descriptions and requirements
-      console.log('Active Jobs:', jobs.map((job: any) => {
-        console.log('Individual Job:', job); // Log each job object
-        return {
-          title: job.title,
-          description: job.description,
-          requirements: Array.isArray(job.requirements) ? job.requirements.join(', ') : 'No requirements specified'
-        };
-      }));
 
       if (hasErrors) {
         const errorMessage = errorDetails.length > 0 
@@ -377,7 +388,7 @@ export default function ResumesPage() {
           duration: 5000 // Show for 5 seconds
         });
       } else {
-        toast.success('All resumes processed successfully!', {
+        toast.success('All resumes processed and evaluated successfully!', {
           style: {
             background: '#DCFCE7',
             color: '#166534',
