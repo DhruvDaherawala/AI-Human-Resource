@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Trash2 } from 'lucide-react';
 import { parseResumeDocument } from '@/lib/resume-parser';
+import CandidateEvaluation from '@/models/CandidateEvaluation';
 
 type Resume = {
   _id: string;
@@ -340,6 +341,7 @@ export default function ResumesPage() {
           for (const job of jobs) {
             try {
               console.log(`Evaluating resume against job: ${job.title}`);
+              const startTime = Date.now();
               const evaluation = await fetch('/api/evaluate-resume', {
                 method: 'POST',
                 headers: {
@@ -353,6 +355,31 @@ export default function ResumesPage() {
               }).then(res => res.json());
 
               console.log(`AI Evaluation for ${resume.filename} against ${job.title}:`, evaluation);
+
+              // Store evaluation using the API endpoint
+              const storeResponse = await fetch('/api/store-evaluation', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  resumeId: resume._id,
+                  jobId: job._id,
+                  candidateInfo: evaluation.candidateInfo,
+                  qualifications: evaluation.qualifications,
+                  evaluation: evaluation.evaluation,
+                  analysis: evaluation.analysis,
+                  processingTime: Date.now() - startTime,
+                  metadata: evaluation.metadata
+                })
+              });
+
+              if (!storeResponse.ok) {
+                throw new Error('Failed to store evaluation');
+              }
+
+              const storeResult = await storeResponse.json();
+              console.log(`Stored evaluation for ${resume.filename} against ${job.title}:`, storeResult);
             } catch (error) {
               console.error(`Error evaluating resume ${resume.filename} against job ${job.title}:`, error);
               errorDetails.push({ 

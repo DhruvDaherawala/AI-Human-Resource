@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import Job from '@/models/Job';
-import connectDB from '@/lib/mongodb';
+import { connectToDatabase } from '@/lib/mongodb';
 
 // GET single job
 export async function GET(
@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
+    await connectToDatabase();
     const job = await Job.findById(params.id);
     
     if (!job) {
@@ -35,7 +35,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
+    await connectToDatabase();
     const data = await request.json();
     
     const result = await Job.findByIdAndUpdate(
@@ -70,7 +70,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
+    await connectToDatabase();
     const result = await Job.findByIdAndDelete(params.id);
     
     if (!result) {

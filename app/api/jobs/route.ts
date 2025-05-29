@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
 import Job from '@/models/Job'
-import connectDB from '@/lib/mongodb'
+import { connectToDatabase } from '@/lib/mongodb'
 
 export async function GET() {
   try {
     console.log('Connecting to MongoDB...');
-    await connectDB();
+    await connectToDatabase();
     console.log('Fetching jobs...');
     const jobs = await Job.find({}).sort({ postedDate: -1 });
     console.log(`Found ${jobs.length} jobs`);
@@ -22,7 +22,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     console.log('Connecting to MongoDB...');
-    await connectDB();
+    await connectToDatabase();
     const data = await request.json();
     console.log('Creating new job:', data);
     
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     console.log('Connecting to MongoDB...');
-    await connectDB();
+    await connectToDatabase();
     const { id, ...update } = await request.json();
     console.log('Updating job:', id);
     
@@ -81,7 +81,7 @@ export async function PUT(request: Request) {
 export async function DELETE(request: Request) {
   try {
     console.log('Connecting to MongoDB...');
-    await connectDB();
+    await connectToDatabase();
     const { id } = await request.json();
     console.log('Deleting job:', id);
     

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import Resume from "@/models/Resume";
-import connectDB from "@/lib/mongodb";
+import { connectToDatabase } from "@/lib/mongodb";
 
 // Maximum file size (5MB)
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -8,7 +8,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
 export async function GET() {
   try {
     console.log('Connecting to MongoDB...');
-    await connectDB();
+    await connectToDatabase();
     console.log('Fetching resumes...');
     
     // Add error handling for the find operation
@@ -45,7 +45,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     console.log('Connecting to MongoDB...');
-    await connectDB();
+    await connectToDatabase();
     const formData = await request.formData();
     const file = formData.get('file') as File;
     

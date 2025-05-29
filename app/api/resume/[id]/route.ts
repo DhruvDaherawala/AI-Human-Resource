@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import Resume from "@/models/Resume";
-import connectDB from "@/lib/mongodb";
+import { connectToDatabase } from "@/lib/mongodb";
 
 // DELETE resume
 export async function DELETE(
@@ -8,7 +8,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
+    await connectToDatabase();
     const result = await Resume.findByIdAndDelete(params.id);
     
     if (result) {
@@ -27,7 +27,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
+    await connectToDatabase();
     const { status } = await req.json();
     
     const result = await Resume.findByIdAndUpdate(
@@ -52,7 +52,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
+    await connectToDatabase();
     const resume = await Resume.findById(params.id);
     
     if (!resume) {
