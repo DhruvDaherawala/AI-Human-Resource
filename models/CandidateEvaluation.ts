@@ -11,93 +11,72 @@ const CandidateEvaluationSchema = new mongoose.Schema({
     ref: 'Job',
     required: true 
   },
-  // Basic Information
-  name: { type: String, required: true },
-  location: { type: String, required: true },
-  email: { type: String, required: true },
-  phone: { type: String, required: true },
   
-  // Skills and Education
-  skills: [{ type: String, required: true }],
-  education: { type: String, required: true },
-  currentRole: { type: String },
-  currentCompany: { type: String },
-  
-  // AI Evaluation Results
-  matchScore: { 
-    type: Number, 
-    required: true,
-    min: 0,
-    max: 100
-  },
-  recommendation: {
-    type: String,
-    enum: ["Not Recommended", "Recommended", "Strongly Recommended"],
-    required: true
+  // Candidate Information
+  candidateInfo: {
+    name: { type: String, required: true },
+    location: { type: String, required: true },
+    email: { type: String, required: true },
+    phone: { type: String, required: true }
   },
   
-  // Detailed AI Analysis
-  skillAnalysis: { 
-    type: String, 
-    required: true 
-  },
-  experienceEvaluation: { 
-    type: String, 
-    required: true 
-  },
-  educationEvaluation: { 
-    type: String, 
-    required: true 
-  },
-  reasoning: { 
-    type: String, 
-    required: true 
+  // Qualifications
+  qualifications: {
+    skills: [{ type: String, required: true }],
+    education: { type: String, required: true },
+    currentRole: { type: String },
+    currentCompany: { type: String }
   },
   
-  // AI Evaluation Metadata
-  aiEvaluationMetadata: {
-    modelUsed: { type: String, required: true },
-    confidenceScore: { 
+  // Evaluation Results
+  evaluation: {
+    matchScore: { 
       type: Number, 
       required: true,
       min: 0,
-      max: 1
+      max: 100
     },
-    processingTime: { type: Number },
-    tokensUsed: { type: Number },
-    evaluationDate: { type: Date, default: Date.now }
-  },
-  
-  // Detailed Skill Matching
-  skillMatchDetails: [{
-    skill: { type: String, required: true },
-    relevance: { type: Number, required: true, min: 0, max: 1 },
-    matchLevel: {
+    recommendation: {
       type: String,
-      enum: ["exact", "partial", "related", "none"],
+      enum: ["Not Recommended", "Recommended", "Strongly Recommended"],
       required: true
     },
-    notes: { type: String }
-  }],
-  
-  // Experience Match Details
-  experienceMatchDetails: {
-    yearsOfExperience: { type: Number },
-    industryMatch: { type: Number, min: 0, max: 1 },
-    roleMatch: { type: Number, min: 0, max: 1 },
-    keyAchievements: [{ type: String }]
+    skillAnalysis: {
+      matchingSkills: [{ type: String }],
+      missingSkills: [{ type: String }],
+      skillGap: { type: String }
+    },
+    experienceEvaluation: {
+      relevance: { type: String },
+      yearsOfExperience: { type: Number },
+      keyAchievements: [{ type: String }]
+    },
+    educationEvaluation: {
+      relevance: { type: String },
+      qualificationMatch: { type: String }
+    }
   },
   
-  // Status Fields
-  status: {
-    type: String,
-    enum: ["pending", "completed", "failed"],
-    default: "pending"
+  // Analysis
+  analysis: {
+    strengths: [{ type: String }],
+    weaknesses: [{ type: String }],
+    reasoning: { type: String }
   },
-  manualStatus: {
-    type: String,
-    enum: ["shortlisted", "rejected", null],
-    default: null
+  
+  // Metadata
+  metadata: {
+    status: {
+      type: String,
+      enum: ["pending", "completed", "failed"],
+      default: "pending"
+    },
+    manualStatus: {
+      type: String,
+      enum: ["shortlisted", "rejected", null],
+      default: null
+    },
+    createdAt: { type: Date, default: Date.now }
   },
   
   // Error handling

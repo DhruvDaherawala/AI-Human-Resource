@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import CandidateEvaluation from '@/models/CandidateEvaluation';
 import { connectToDatabase } from '@/lib/mongodb';
+import mongoose from 'mongoose';
 
 export async function POST(request: Request) {
   try {
@@ -14,72 +15,157 @@ export async function POST(request: Request) {
     
     // Validate required fields
     if (!evaluationData.resumeId || !evaluationData.jobId) {
+      console.error('Missing required fields:', {
+        resumeId: evaluationData.resumeId,
+        jobId: evaluationData.jobId
+      });
       throw new Error('Missing required fields: resumeId and jobId are required');
     }
 
-    if (!evaluationData.candidateInfo || !evaluationData.qualifications || !evaluationData.evaluation) {
-      throw new Error('Missing required evaluation data');
+    // Validate ObjectIds
+    if (!mongoose.Types.ObjectId.isValid(evaluationData.resumeId)) {
+      console.error('Invalid resumeId format:', evaluationData.resumeId);
+      throw new Error('Invalid resumeId format');
+    }
+    if (!mongoose.Types.ObjectId.isValid(evaluationData.jobId)) {
+      console.error('Invalid jobId format:', evaluationData.jobId);
+      throw new Error('Invalid jobId format');
     }
     
+    // Log the raw evaluation data
+    console.log('Raw evaluation data:', {
+      candidateInfo: evaluationData.candidateInfo,
+      qualifications: evaluationData.qualifications,
+      evaluation: evaluationData.evaluation,
+      analysis: evaluationData.analysis
+    });
+
+    // Validate and transform candidate info
+    if (!evaluationData.candidateInfo) {
+      console.error('Missing candidateInfo in evaluation data');
+      throw new Error('Missing candidateInfo in evaluation data');
+    }
+
+    const candidateInfo = {
+      name: evaluationData.candidateInfo.name || 'Unknown',
+      location: evaluationData.candidateInfo.location || 'Unknown',
+      email: evaluationData.candidateInfo.email || 'Unknown',
+      phone: evaluationData.candidateInfo.phone || 'Unknown'
+    };
+      
+    // Validate and transform qualifications
+    if (!evaluationData.qualifications) {
+      console.error('Missing qualifications in evaluation data');
+      throw new Error('Missing qualifications in evaluation data');
+    }
+
+    const qualifications = {
+      skills: Array.isArray(evaluationData.qualifications.skills) ? evaluationData.qualifications.skills : [],
+      education: evaluationData.qualifications.education || 'Unknown',
+      currentRole: evaluationData.qualifications.currentRole || 'Unknown',
+      currentCompany: evaluationData.qualifications.currentCompany || 'Unknown'
+    };
+
+    // Validate and transform evaluation
+    if (!evaluationData.evaluation) {
+      console.error('Missing evaluation in evaluation data');
+      throw new Error('Missing evaluation in evaluation data');
+    }
+
+    const evaluation = {
+      matchScore: typeof evaluationData.evaluation.matchScore === 'number' 
+        ? Math.min(Math.max(evaluationData.evaluation.matchScore, 0), 100) 
+        : 0,
+      recommendation: ['Not Recommended', 'Recommended', 'Strongly Recommended'].includes(evaluationData.evaluation.recommendation) 
+        ? evaluationData.evaluation.recommendation 
+        : 'Not Recommended',
+      skillAnalysis: {
+        matchingSkills: Array.isArray(evaluationData.evaluation.skillAnalysis?.matchingSkills) 
+          ? evaluationData.evaluation.skillAnalysis.matchingSkills 
+          : [],
+        missingSkills: Array.isArray(evaluationData.evaluation.skillAnalysis?.missingSkills) 
+          ? evaluationData.evaluation.skillAnalysis.missingSkills 
+          : [],
+        skillGap: evaluationData.evaluation.skillAnalysis?.skillGap || ''
+      },
+      experienceEvaluation: {
+        relevance: evaluationData.evaluation.experienceEvaluation?.relevance || '',
+        yearsOfExperience: typeof evaluationData.evaluation.experienceEvaluation?.yearsOfExperience === 'number' 
+          ? evaluationData.evaluation.experienceEvaluation.yearsOfExperience 
+          : 0,
+        keyAchievements: Array.isArray(evaluationData.evaluation.experienceEvaluation?.keyAchievements) 
+          ? evaluationData.evaluation.experienceEvaluation.keyAchievements 
+          : []
+      },
+      educationEvaluation: {
+        relevance: evaluationData.evaluation.educationEvaluation?.relevance || '',
+        qualificationMatch: evaluationData.evaluation.educationEvaluation?.qualificationMatch || ''
+      }
+    };
+
+    // Validate and transform analysis
+    if (!evaluationData.analysis) {
+      console.error('Missing analysis in evaluation data');
+      throw new Error('Missing analysis in evaluation data');
+    }
+
+    const analysis = {
+      strengths: Array.isArray(evaluationData.analysis.strengths) ? evaluationData.analysis.strengths : [],
+      weaknesses: Array.isArray(evaluationData.analysis.weaknesses) ? evaluationData.analysis.weaknesses : [],
+      reasoning: evaluationData.analysis.reasoning || ''
+    };
+
+    // Add AI evaluation metadata
+    const aiEvaluationMetadata = {
+      confidenceScore: 0.85, // Default confidence score
+      modelUsed: "gemini-pro", // Default model used
+      processingTime: evaluationData.processingTime || 0,
+      timestamp: new Date()
+    };
+
+    // Log the transformed data
+    console.log('Transformed data:', {
+      candidateInfo,
+      qualifications,
+      evaluation,
+      analysis,
+      aiEvaluationMetadata
+    });
+
     // Create new evaluation document
     const candidateEvaluation = new CandidateEvaluation({
-      resumeId: evaluationData.resumeId,
-      jobId: evaluationData.jobId,
-      // Basic Information
-      name: evaluationData.candidateInfo.name,
-      location: evaluationData.candidateInfo.location,
-      email: evaluationData.candidateInfo.email,
-      phone: evaluationData.candidateInfo.phone,
-      
-      // Skills and Education
-      skills: evaluationData.qualifications.skills,
-      education: evaluationData.qualifications.education,
-      currentRole: evaluationData.qualifications.currentRole,
-      currentCompany: evaluationData.qualifications.currentCompany,
-      
-      // AI Evaluation Results
-      matchScore: evaluationData.evaluation.matchScore,
-      recommendation: evaluationData.evaluation.recommendation,
-      
-      // Detailed AI Analysis
-      skillAnalysis: JSON.stringify(evaluationData.evaluation.skillAnalysis),
-      experienceEvaluation: JSON.stringify(evaluationData.evaluation.experienceEvaluation),
-      educationEvaluation: JSON.stringify(evaluationData.evaluation.educationEvaluation),
-      reasoning: evaluationData.analysis.reasoning,
-      
-      // AI Evaluation Metadata
-      aiEvaluationMetadata: {
-        modelUsed: "gemini-2.0-flash",
-        confidenceScore: 0.95,
-        processingTime: evaluationData.processingTime,
-        tokensUsed: evaluationData.metadata?.tokensUsed || 0,
-        evaluationDate: new Date()
-      },
-      
-      // Detailed Skill Matching
-      skillMatchDetails: evaluationData.evaluation.skillAnalysis.matchingSkills.map((skill: string) => ({
-        skill,
-        relevance: 1.0,
-        matchLevel: "exact",
-        notes: "Matched skill from job requirements"
-      })),
-      
-      // Experience Match Details
-      experienceMatchDetails: {
-        yearsOfExperience: evaluationData.evaluation.experienceEvaluation.yearsOfExperience,
-        industryMatch: 0.8,
-        roleMatch: 0.9,
-        keyAchievements: evaluationData.evaluation.experienceEvaluation.keyAchievements
-      },
-      
-      // Status
-      status: "completed"
+      resumeId: new mongoose.Types.ObjectId(evaluationData.resumeId),
+      jobId: new mongoose.Types.ObjectId(evaluationData.jobId),
+      candidateInfo,
+      qualifications,
+      evaluation,
+      analysis,
+      aiEvaluationMetadata,
+      metadata: {
+        status: "completed",
+        manualStatus: null,
+        createdAt: new Date()
+      }
     });
 
     // Save the evaluation
     console.log('Saving evaluation to database...');
+    try {
     await candidateEvaluation.save();
     console.log('Evaluation saved successfully');
+    } catch (saveError) {
+      console.error('Error during save operation:', saveError);
+      if (saveError instanceof Error) {
+        console.error('Validation errors:', (saveError as any).errors);
+        console.error('Full error details:', {
+          name: saveError.name,
+          message: saveError.message,
+          stack: saveError.stack,
+          errors: (saveError as any).errors
+        });
+      }
+      throw saveError;
+    }
 
     return NextResponse.json({ 
       success: true, 
@@ -88,13 +174,24 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error('Error storing evaluation:', error);
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+      if ('errors' in error) {
+        console.error('Validation errors:', (error as any).errors);
+      }
+    }
     
     // Return detailed error response
     return NextResponse.json(
       { 
         success: false, 
         error: error instanceof Error ? error.message : 'Failed to store evaluation',
-        details: error instanceof Error ? error.stack : undefined
+        details: error instanceof Error ? error.stack : undefined,
+        validationErrors: error instanceof Error && 'errors' in error ? (error as any).errors : undefined
       },
       { status: 500 }
     );

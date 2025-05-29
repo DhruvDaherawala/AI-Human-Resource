@@ -357,6 +357,12 @@ export default function ResumesPage() {
               console.log(`AI Evaluation for ${resume.filename} against ${job.title}:`, evaluation);
 
               // Store evaluation using the API endpoint
+              console.log('Preparing to store evaluation:', {
+                resumeId: resume._id,
+                jobId: job._id,
+                evaluation: evaluation
+              });
+
               const storeResponse = await fetch('/api/store-evaluation', {
                 method: 'POST',
                 headers: {
@@ -375,7 +381,13 @@ export default function ResumesPage() {
               });
 
               if (!storeResponse.ok) {
-                throw new Error('Failed to store evaluation');
+                const errorData = await storeResponse.json();
+                console.error('Store evaluation failed:', {
+                  status: storeResponse.status,
+                  statusText: storeResponse.statusText,
+                  error: errorData
+                });
+                throw new Error(`Failed to store evaluation: ${errorData.error || 'Unknown error'}`);
               }
 
               const storeResult = await storeResponse.json();
