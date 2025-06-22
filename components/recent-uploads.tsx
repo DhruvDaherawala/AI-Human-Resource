@@ -2,47 +2,28 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { FileText, Eye } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 
-export function RecentUploads() {
-  // Mock data - in a real app, this would come from your database
-  const recentUploads = [
-    {
-      id: "1",
-      filename: "john_doe_resume.pdf",
-      uploadDate: "2025-05-15T10:30:00Z",
-      status: "Processed",
-      matchScore: 85,
-    },
-    {
-      id: "2",
-      filename: "jane_smith_resume.pdf",
-      uploadDate: "2025-05-15T09:45:00Z",
-      status: "Processed",
-      matchScore: 92,
-    },
-    {
-      id: "3",
-      filename: "mike_johnson_resume.pdf",
-      uploadDate: "2025-05-14T16:20:00Z",
-      status: "Processed",
-      matchScore: 78,
-    },
-    {
-      id: "4",
-      filename: "sarah_williams_resume.pdf",
-      uploadDate: "2025-05-14T14:10:00Z",
-      status: "Processed",
-      matchScore: 88,
-    },
-    {
-      id: "5",
-      filename: "david_brown_resume.pdf",
-      uploadDate: "2025-05-14T11:05:00Z",
-      status: "Processed",
-      matchScore: 65,
-    },
-  ]
+type Evaluation = {
+  _id: string;
+  candidateInfo: {
+    name: string;
+  };
+  evaluation: {
+    matchScore: number;
+  };
+  metadata: {
+    createdAt: string;
+    status: string;
+  };
+};
 
+type RecentUploadsProps = {
+  uploads: Evaluation[];
+  loading: boolean;
+};
+
+export function RecentUploads({ uploads, loading }: RecentUploadsProps) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     return new Intl.DateTimeFormat("en-US", {
@@ -57,7 +38,9 @@ export function RecentUploads() {
     <Card>
       <CardHeader>
         <CardTitle>Recent Uploads</CardTitle>
-        <CardDescription>You have uploaded 5 resumes in the last 2 days.</CardDescription>
+        <CardDescription>
+          {loading ? "Loading recent uploads..." : `You have ${uploads.length} recent uploads.`}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-8">
@@ -65,7 +48,7 @@ export function RecentUploads() {
             <table className="w-full">
               <thead>
                 <tr className="border-b text-left">
-                  <th className="pb-2 font-medium">File Name</th>
+                  <th className="pb-2 font-medium">Candidate Name</th>
                   <th className="pb-2 font-medium">Upload Date</th>
                   <th className="pb-2 font-medium">Status</th>
                   <th className="pb-2 font-medium">Match Score</th>
@@ -73,37 +56,59 @@ export function RecentUploads() {
                 </tr>
               </thead>
               <tbody>
-                {recentUploads.map((upload) => (
-                  <tr key={upload.id} className="border-b last:border-0">
-                    <td className="py-3">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{upload.filename}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 text-muted-foreground">{formatDate(upload.uploadDate)}</td>
-                    <td className="py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-green-500" />
-                        <span>{upload.status}</span>
-                      </div>
-                    </td>
-                    <td className="py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-blue-500" />
-                        <span>{upload.matchScore}%</span>
-                      </div>
-                    </td>
-                    <td className="py-3 text-right">
-                      <Button variant="ghost" size="icon" asChild>
-                        <Link href={`/candidates/${upload.id}`}>
-                          <Eye className="h-4 w-4" />
-                          <span className="sr-only">View</span>
-                        </Link>
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
+                {loading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={i} className="border-b last:border-0">
+                      <td className="py-3">
+                        <Skeleton className="h-5 w-32" />
+                      </td>
+                      <td className="py-3">
+                        <Skeleton className="h-5 w-24" />
+                      </td>
+                      <td className="py-3">
+                        <Skeleton className="h-5 w-20" />
+                      </td>
+                      <td className="py-3">
+                        <Skeleton className="h-5 w-16" />
+                      </td>
+                      <td className="py-3 text-right">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  uploads.map((upload) => (
+                    <tr key={upload._id} className="border-b last:border-0">
+                      <td className="py-3">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">{upload.candidateInfo.name}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 text-muted-foreground">{formatDate(upload.metadata.createdAt)}</td>
+                      <td className="py-3">
+                        <div className="flex items-center gap-2">
+                          <div className={`h-2 w-2 rounded-full ${upload.metadata.status === 'Processed' ? 'bg-green-500' : 'bg-yellow-500'}`} />
+                          <span>{upload.metadata.status}</span>
+                        </div>
+                      </td>
+                      <td className="py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full bg-blue-500" />
+                          <span>{upload.evaluation.matchScore}%</span>
+                        </div>
+                      </td>
+                      <td className="py-3 text-right">
+                        <Button variant="ghost" size="icon" asChild>
+                          <Link href={`/candidates/${upload._id}`}>
+                            <Eye className="h-4 w-4" />
+                            <span className="sr-only">View</span>
+                          </Link>
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

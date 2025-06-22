@@ -555,6 +555,62 @@ export default function ResumesPage() {
     }
   };
 
+  // Add a handler for processing a single resume
+  const handleProcessSingle = async (resume: Resume) => {
+    setProcessingAll(true);
+    try {
+      // Reuse handleProcessAll logic but for a single resume
+      // Fetch active jobs first
+      const jobsResponse = await fetch('/api/jobs?status=active');
+      const jobs = await jobsResponse.json();
+      if (!jobs || jobs.length === 0) {
+        throw new Error('No active jobs found for evaluation');
+      }
+      // Fetch full resume data
+      const res = await fetch(`/api/resume/${resume._id}`);
+      if (!res.ok) throw new Error('Failed to fetch resume');
+      const data = await res.json();
+      if (!data || !data.data) throw new Error('Invalid resume data');
+      // Extract text
+      const extractedText = await parseResumeDocument(data);
+      if (!extractedText || extractedText.trim().length === 0) throw new Error('No text content extracted from PDF');
+      // Process for each job
+      for (const job of jobs) {
+        const startTime = Date.now();
+        const evaluation = await fetch('/api/evaluate-resume', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            resumeText: extractedText,
+            jobDescription: job.description,
+            jobRequirements: Array.isArray(job.requirements) ? job.requirements.join('\n') : job.requirements
+          })
+        }).then(res => res.json());
+        await fetch('/api/store-evaluation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            resumeId: resume._id,
+            jobId: job._id,
+            candidateInfo: evaluation.candidateInfo,
+            qualifications: evaluation.qualifications,
+            evaluation: evaluation.evaluation,
+            analysis: evaluation.analysis,
+            processingTime: Date.now() - startTime,
+            metadata: evaluation.metadata
+          })
+        });
+      }
+      await handleUpdate(resume._id, 'reviewed');
+      toast.success('Resume processed and evaluated successfully!');
+    } catch (error) {
+      toast.error('Failed to process resume: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      setProcessingAll(false);
+      fetchResumes();
+    }
+  };
+
   return (
     <div className="container pb-8">
       <h1 className="text-2xl font-bold mb-6">Resumes</h1>
@@ -890,6 +946,17 @@ export default function ResumesPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex justify-end gap-2">
+                        {resume.status === 'pending' && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => handleProcessSingle(resume)}
+                            className="h-8 bg-primary text-white"
+                            disabled={processingAll}
+                          >
+                            {processingAll ? 'Processing...' : 'Process'}
+                          </Button>
+                        )}
                         <Button
                           size="sm"
                           variant="outline"
@@ -982,6 +1049,17 @@ export default function ResumesPage() {
                   Uploaded: {new Date(resume.uploadDate).toLocaleString()}
                 </p>
                 <div className="flex flex-col gap-2 pt-2">
+                  {resume.status === 'pending' && (
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={() => handleProcessSingle(resume)}
+                      className="w-full h-9 font-medium bg-primary text-white"
+                      disabled={processingAll}
+                    >
+                      {processingAll ? 'Processing...' : 'Process'}
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="outline"

@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
-import { ArrowLeft, Mail, Phone, MapPin, Building2, GraduationCap, Briefcase, Star, AlertTriangle, CheckCircle2, XCircle, Calendar } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, Building2, GraduationCap, Briefcase, Star, AlertTriangle, CheckCircle2, XCircle, Calendar, Download } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 type CandidateEvaluation = {
@@ -168,16 +168,16 @@ export default function CandidateDetailPage() {
   return (
     <div className="container py-2">
       <div className="flex flex-col space-y-4">
-        {/* Header Section */}
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h2 className="text-2xl font-semibold tracking-tight">Candidate Details</h2>
-            <p className="text-sm text-muted-foreground">
-              {evaluation?.jobTitle ? `Evaluated for ${evaluation.jobTitle}` : 'Comprehensive evaluation and analysis'}
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex gap-2">
+        {/* Button Row and Evaluated For */}
+        <div className="flex flex-col mb-2">
+          <div className="flex flex-row flex-wrap items-center justify-between mb-2 w-full">
+            <Button variant="outline" asChild className="gap-2">
+              <Link href="/candidates">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Candidates
+              </Link>
+            </Button>
+            <div className="flex flex-row flex-wrap gap-2 items-center">
               <Dialog>
                 <DialogTrigger asChild>
                   <Button
@@ -249,7 +249,7 @@ export default function CandidateDetailPage() {
                     <Button 
                       onClick={handleScheduleInterview}
                       disabled={isScheduling}
-                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
                     >
                       {isScheduling ? 'Scheduling...' : 'Schedule'}
                     </Button>
@@ -276,13 +276,52 @@ export default function CandidateDetailPage() {
                 <XCircle className="h-5 w-5 text-red-500" />
                 Reject
               </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="gap-2"
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`/api/resume/${evaluation.resumeId}`);
+                    if (!res.ok) throw new Error('Failed to fetch resume');
+                    const data = await res.json();
+                    const byteCharacters = atob(data.data);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) {
+                      byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], { type: data.contentType });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = data.filename || 'resume';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                  } catch (err) {
+                    toast.error('Failed to download resume');
+                  }
+                }}
+              >
+                <Download className="h-5 w-5" />
+                Download Resume
+              </Button>
             </div>
-            <Button variant="outline" asChild className="gap-2">
-              <Link href="/candidates">
-                <ArrowLeft className="h-4 w-4" />
-                Back to Candidates
-              </Link>
-            </Button>
+          </div>
+          {evaluation?.jobTitle && (
+            <div className="flex justify-start w-full">
+              <span className="inline-block text-lg font-bold px-6 py-2 rounded-lg shadow bg-gradient-to-r from-blue-100 to-blue-300 text-blue-900 dark:from-blue-900 dark:to-blue-700 dark:text-blue-100 border border-blue-200 dark:border-blue-800">
+                Evaluated for {evaluation.jobTitle}
+              </span>
+            </div>
+          )}
+        </div>
+        {/* Header Section */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h2 className="text-2xl font-semibold tracking-tight"></h2>
           </div>
         </div>
 
@@ -290,7 +329,7 @@ export default function CandidateDetailPage() {
           {/* Left Column */}
           <div className="lg:col-span-5 space-y-4">
             {/* Candidate Profile */}
-            <Card className="bg-blue-50/50 dark:bg-blue-950/20 backdrop-blur-sm border-0 shadow-[0_8px_24px_rgba(59,130,246,0.15)] dark:shadow-[0_8px_24px_rgba(59,130,246,0.25)]">
+            <Card className="bg-blue-100 dark:bg-blue-950/20 backdrop-blur-sm border-0 shadow-[0_8px_24px_rgba(59,130,246,0.15)] dark:shadow-[0_8px_24px_rgba(59,130,246,0.25)]">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
@@ -355,7 +394,7 @@ export default function CandidateDetailPage() {
             </Card>
 
             {/* Evaluation Summary */}
-            <Card className="bg-green-50/50 dark:bg-green-950/20 backdrop-blur-sm border-0 shadow-[0_8px_24px_rgba(34,197,94,0.15)] dark:shadow-[0_8px_24px_rgba(34,197,94,0.25)]">
+            <Card className="bg-green-100 dark:bg-green-950/20 backdrop-blur-sm border-0 shadow-[0_8px_24px_rgba(34,197,94,0.15)] dark:shadow-[0_8px_24px_rgba(34,197,94,0.25)]">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Star className="h-4 w-4 text-green-600 dark:text-green-400" />
@@ -393,7 +432,7 @@ export default function CandidateDetailPage() {
             </Card>
 
             {/* Skills Analysis */}
-            <Card className="bg-blue-50/50 dark:bg-blue-950/20 backdrop-blur-sm border-0 shadow-[0_8px_24px_rgba(59,130,246,0.15)] dark:shadow-[0_8px_24px_rgba(59,130,246,0.25)]">
+            <Card className="bg-blue-100 dark:bg-blue-950/20 backdrop-blur-sm border-0 shadow-[0_8px_24px_rgba(59,130,246,0.15)] dark:shadow-[0_8px_24px_rgba(59,130,246,0.25)]">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Briefcase className="h-4 w-4 text-blue-600 dark:text-blue-400" />
@@ -405,7 +444,7 @@ export default function CandidateDetailPage() {
                   <p className="text-xs font-medium text-muted-foreground mb-2">Matching Skills</p>
                   <div className="flex flex-wrap gap-1.5">
                     {evaluation.evaluation.skillAnalysis.matchingSkills.map((skill, index) => (
-                      <Badge key={index} variant="default" className="text-xs px-2 py-0.5 bg-blue-100/50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                      <Badge key={index} variant="default" className="text-xs px-2 py-0.5 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 bg-transparent hover:bg-transparent">
                         {skill}
                       </Badge>
                     ))}
@@ -432,7 +471,7 @@ export default function CandidateDetailPage() {
           {/* Right Column */}
           <div className="lg:col-span-7 space-y-4">
             {/* Experience */}
-            <Card className="bg-orange-50/50 dark:bg-orange-950/20 backdrop-blur-sm border-0 shadow-[0_8px_24px_rgba(249,115,22,0.15)] dark:shadow-[0_8px_24px_rgba(249,115,22,0.25)]">
+            <Card className="bg-orange-100 dark:bg-orange-950/20 backdrop-blur-sm border-0 shadow-[0_8px_24px_rgba(249,115,22,0.15)] dark:shadow-[0_8px_24px_rgba(249,115,22,0.25)]">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Briefcase className="h-4 w-4 text-orange-600 dark:text-orange-400" />
@@ -471,7 +510,7 @@ export default function CandidateDetailPage() {
             </Card>
 
             {/* Education */}
-            <Card className="bg-indigo-50/50 dark:bg-indigo-950/20 backdrop-blur-sm border-0 shadow-[0_8px_24px_rgba(99,102,241,0.15)] dark:shadow-[0_8px_24px_rgba(99,102,241,0.25)]">
+            <Card className="bg-indigo-100 dark:bg-indigo-950/20 backdrop-blur-sm border-0 shadow-[0_8px_24px_rgba(99,102,241,0.15)] dark:shadow-[0_8px_24px_rgba(99,102,241,0.25)]">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <GraduationCap className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
@@ -495,7 +534,7 @@ export default function CandidateDetailPage() {
             </Card>
 
             {/* Analysis & Reasoning */}
-            <Card className="bg-rose-50/50 dark:bg-rose-950/20 backdrop-blur-sm border-0 shadow-[0_8px_24px_rgba(244,63,94,0.15)] dark:shadow-[0_8px_24px_rgba(244,63,94,0.25)]">
+            <Card className="bg-rose-100 dark:bg-rose-950/20 backdrop-blur-sm border-0 shadow-[0_8px_24px_rgba(244,63,94,0.15)] dark:shadow-[0_8px_24px_rgba(244,63,94,0.25)]">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Star className="h-4 w-4 text-rose-600 dark:text-rose-400" />

@@ -1,95 +1,186 @@
-import type { Metadata } from "next"
-import { Button } from "@/components/ui/button"
+'use client'
 
-export const metadata: Metadata = {
-  title: "Settings - AI HR System",
-  description: "Manage your account settings and preferences",
-}
+import { useState, useEffect } from 'react'
+import { useAuth } from '@/lib/auth-context'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { toast } from 'react-hot-toast'
 
 export default function SettingsPage() {
-  return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">Settings</h1>
+  const { user, loading, login } = useAuth()
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    hrEmail: '',
+    companyName: '',
+    phoneNumber: '',
+  })
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  })
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        hrEmail: user.hrEmail || '',
+        companyName: user.companyName || '',
+        phoneNumber: user.phoneNumber || '',
+      })
+    }
+  }, [user])
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPasswordData({ ...passwordData, [e.target.name]: e.target.value })
+  }
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user) return
+
+    const toastId = toast.loading('Updating profile...')
+    try {
+      const response = await fetch(`/api/user/${user._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Failed to update profile.')
+      }
+
+      const updatedUser = await response.json()
+      login(updatedUser) // Update user in auth context and local storage
+
+      toast.success('Profile updated successfully!', { id: toastId })
+    } catch (error: any) {
+      toast.error(error.message || 'An error occurred.', { id: toastId })
+    }
+  }
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user) return
+    
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error('New passwords do not match.')
+      return
+    }
+
+    const toastId = toast.loading('Changing password...')
+    try {
+      const response = await fetch(`/api/user/${user._id}/password`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Failed to change password.')
+      }
       
-      <div className="grid gap-6">
-        {/* Profile Settings */}
-        <div className="border rounded-lg p-5 bg-card">
-          <h2 className="text-lg font-semibold mb-4">Profile Settings</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Company Name</label>
-              <input
-                type="text"
-                className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                placeholder="Enter your company name"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Email</label>
-              <input
-                type="email"
-                className="mt-1 block w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                placeholder="Enter your email"
-              />
-            </div>
-            <Button>Save Changes</Button>
-          </div>
-        </div>
+      toast.success('Password changed successfully!', { id: toastId })
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
+    } catch (error: any) {
+      toast.error(error.message || 'An error occurred.', { id: toastId })
+    }
+  }
+  
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
 
-        {/* Notification Settings */}
-        <div className="border rounded-lg p-5 bg-card">
-          <h2 className="text-lg font-semibold mb-4">Notification Settings</h2>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-medium">Email Notifications</h3>
-                <p className="text-sm text-muted-foreground">Receive email updates about your account</p>
-              </div>
-              <input type="checkbox" className="h-4 w-4 rounded border-gray-300" />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-medium">Application Alerts</h3>
-                <p className="text-sm text-muted-foreground">Get notified when new candidates apply</p>
-              </div>
-              <input type="checkbox" className="h-4 w-4 rounded border-gray-300" />
-            </div>
-          </div>
-        </div>
+  if (!user) {
+    return (
+      <div className="text-center">
+        <p>You must be logged in to view this page.</p>
+      </div>
+    )
+  }
 
-        {/* AI Screening Settings */}
-        <div className="border rounded-lg p-5 bg-card">
-          <h2 className="text-lg font-semibold mb-4">AI Screening Settings</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Minimum Match Percentage</label>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                className="mt-1 block w-full"
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-medium">Auto-Shortlist</h3>
-                <p className="text-sm text-muted-foreground">Automatically shortlist candidates above threshold</p>
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Settings</h1>
+        <p className="text-muted-foreground">Manage your account and company settings.</p>
+      </div>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Profile Information</CardTitle>
+            <CardDescription>Update your personal and company details.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleUpdateProfile} className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input id="firstName" name="firstName" value={formData.firstName} onChange={handleFormChange} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input id="lastName" name="lastName" value={formData.lastName} onChange={handleFormChange} />
+                </div>
               </div>
-              <input type="checkbox" className="h-4 w-4 rounded border-gray-300" />
-            </div>
-          </div>
-        </div>
+              <div className="space-y-2">
+                <Label htmlFor="hrEmail">Email</Label>
+                <Input id="hrEmail" name="hrEmail" type="email" value={formData.hrEmail} onChange={handleFormChange} disabled />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="companyName">Company Name</Label>
+                <Input id="companyName" name="companyName" value={formData.companyName} onChange={handleFormChange} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phoneNumber">Phone Number</Label>
+                <Input id="phoneNumber" name="phoneNumber" value={formData.phoneNumber} onChange={handleFormChange} />
+              </div>
+              <Button type="submit">Save Changes</Button>
+            </form>
+          </CardContent>
+        </Card>
 
-        {/* Danger Zone */}
-        <div className="border rounded-lg p-5 bg-card">
-          <h2 className="text-lg font-semibold mb-4 text-destructive">Danger Zone</h2>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Once you delete your account, there is no going back. Please be certain.
-            </p>
-            <Button variant="destructive">Delete Account</Button>
-          </div>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Change Password</CardTitle>
+            <CardDescription>Update your password for better security.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="currentPassword">Current Password</Label>
+                <Input id="currentPassword" name="currentPassword" type="password" value={passwordData.currentPassword} onChange={handlePasswordChange} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">New Password</Label>
+                <Input id="newPassword" name="newPassword" type="password" value={passwordData.newPassword} onChange={handlePasswordChange} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Input id="confirmPassword" name="confirmPassword" type="password" value={passwordData.confirmPassword} onChange={handlePasswordChange} />
+              </div>
+              <Button type="submit">Change Password</Button>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

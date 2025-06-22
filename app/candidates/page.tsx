@@ -10,7 +10,9 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import { toast } from 'react-hot-toast';
-import { Search, Briefcase, Users, ArrowUpDown, Filter, ArrowLeft, Mail, Phone, MapPin, Building2, GraduationCap, Star, AlertTriangle, CheckCircle2, XCircle, Circle } from 'lucide-react';
+import { Search, Briefcase, Users, ArrowUpDown, Filter, ArrowLeft, Mail, Phone, MapPin, Building2, GraduationCap, Star, AlertTriangle, CheckCircle2, XCircle, Circle, FileText } from 'lucide-react';
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 
 type Job = {
   _id: string;
@@ -65,16 +67,36 @@ type CandidateEvaluation = {
   };
 };
 
+type ResumeStats = {
+  totalResumes: number;
+  totalEvaluations: number;
+  resumeStats: {
+    pending: number;
+    reviewed: number;
+  };
+  evaluationStats: {
+    stronglyRecommended: number;
+    recommended: number;
+    notRecommended: number;
+  };
+};
+
 export default function CandidatesPage() {
   const [evaluations, setEvaluations] = useState<CandidateEvaluation[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedJob, setSelectedJob] = useState('all');
+  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedRecommendation, setSelectedRecommendation] = useState('all');
   const [sortBy, setSortBy] = useState('match');
   const [jobs, setJobs] = useState<Job[]>([]);
   const [jobTitles, setJobTitles] = useState<Record<string, string>>({});
+  const [view, setView] = useState<'card' | 'table'>('card');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [entriesPerPage, setEntriesPerPage] = useState(10);
+  const [stats, setStats] = useState<ResumeStats | null>(null);
 
-  // Fetch evaluations and jobs
+  // Fetch evaluations, jobs, and stats
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -87,6 +109,11 @@ export default function CandidatesPage() {
         const jobsRes = await fetch('/api/jobs');
         const jobsData = await jobsRes.json();
         setJobs(jobsData);
+
+        // Fetch resume statistics
+        const statsRes = await fetch('/api/resumes/stats');
+        const statsData = await statsRes.json();
+        setStats(statsData);
 
         // Create a map of job IDs to titles
         const jobTitleMap = jobsData.reduce((acc: Record<string, string>, job: Job) => {
@@ -111,16 +138,28 @@ export default function CandidatesPage() {
       // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
-        return (
-          evaluation.candidateInfo.name.toLowerCase().includes(query) ||
-          evaluation.candidateInfo.email.toLowerCase().includes(query) ||
-          evaluation.qualifications.currentRole.toLowerCase().includes(query) ||
-          jobTitles[evaluation.jobId]?.toLowerCase().includes(query)
-        );
+        if (
+          !(
+            evaluation.candidateInfo.name.toLowerCase().includes(query) ||
+            evaluation.candidateInfo.email.toLowerCase().includes(query) ||
+            evaluation.qualifications.currentRole.toLowerCase().includes(query) ||
+            jobTitles[evaluation.jobId]?.toLowerCase().includes(query)
+          )
+        ) {
+          return false;
+        }
       }
       // Job filter
-      if (selectedJob !== 'all') {
-        return evaluation.jobId === selectedJob;
+      if (selectedJob !== 'all' && evaluation.jobId !== selectedJob) {
+        return false;
+      }
+      // Status filter
+      if (selectedStatus !== 'all' && evaluation.metadata.manualStatus !== selectedStatus) {
+        return false;
+      }
+      // Recommendation filter
+      if (selectedRecommendation !== 'all' && evaluation.evaluation.recommendation !== selectedRecommendation) {
+        return false;
       }
       return true;
     })
@@ -137,6 +176,12 @@ export default function CandidatesPage() {
       }
     });
 
+  // Pagination logic for table view
+  const totalPages = Math.ceil(filteredEvaluations.length / entriesPerPage);
+  const indexOfLastItem = currentPage * entriesPerPage;
+  const indexOfFirstItem = indexOfLastItem - entriesPerPage;
+  const currentItems = filteredEvaluations.slice(indexOfFirstItem, indexOfLastItem);
+
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -151,16 +196,75 @@ export default function CandidatesPage() {
         {/* Header Section */}
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <h2 className="text-2xl font-semibold tracking-tight">Evaluated Candidates</h2>
+            <h2 className="text-2xl font-semibold tracking-tight">Matched Candidates</h2>
             <p className="text-sm text-muted-foreground">View and manage all evaluated candidates</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="px-3 py-1">
-              <Users className="h-4 w-4 mr-2" />
-              {filteredEvaluations.length} Candidates
+          <div className="flex items-center gap-3">
+            {/* Total Resumes Badge */}
+            <Badge variant="outline" className="px-3 py-1 bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
+              <FileText className="h-4 w-4 mr-2 text-blue-600 dark:text-blue-400" />
+              {stats?.totalResumes || 0} Candidates
+            </Badge>
+            {/* Total Matches Badge */}
+            <Badge variant="secondary" className="px-3 py-1 bg-green-50 dark:bg-green-950/30">
+              <Users className="h-4 w-4 mr-2 text-green-600 dark:text-green-400" />
+              {stats?.totalEvaluations || 0} Matches
             </Badge>
           </div>
         </div>
+
+        {/* Stats Cards */}
+        {stats && (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 border-blue-200 dark:border-blue-800">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">Total Resumes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">{stats.totalResumes}</div>
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                  {stats.resumeStats.pending} pending, {stats.resumeStats.reviewed} reviewed
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/30 border-green-200 dark:border-green-800">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-green-700 dark:text-green-300">Total Matches</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-900 dark:text-green-100">{stats.totalEvaluations}</div>
+                <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                  Candidates matched with jobs
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 border-purple-200 dark:border-purple-800">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">Strongly Recommended</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">{stats.evaluationStats.stronglyRecommended}</div>
+                <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                  Top candidates
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/30 border-orange-200 dark:border-orange-800">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-orange-700 dark:text-orange-300">Recommended</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">{stats.evaluationStats.recommended}</div>
+                <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                  Good candidates
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Filters Section */}
         <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
@@ -174,9 +278,9 @@ export default function CandidatesPage() {
             />
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto items-center">
             <Select value={selectedJob} onValueChange={setSelectedJob}>
-              <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4" />
                   <SelectValue placeholder="Filter by job" />
@@ -192,22 +296,55 @@ export default function CandidatesPage() {
               </SelectContent>
             </Select>
 
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <div className="flex items-center gap-2">
-                  <ArrowUpDown className="h-4 w-4" />
-                  <SelectValue placeholder="Sort by" />
-                </div>
+            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+              <SelectTrigger className="w-full sm:w-[150px]">
+                <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="match">Best Match</SelectItem>
-                <SelectItem value="recent">Most Recent</SelectItem>
-                <SelectItem value="experience">Experience</SelectItem>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="shortlisted">Shortlisted</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+                <SelectItem value="reviewing">Reviewing</SelectItem>
               </SelectContent>
             </Select>
+
+            <Select value={selectedRecommendation} onValueChange={setSelectedRecommendation}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="Recommendation" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Recommendations</SelectItem>
+                <SelectItem value="Strongly Recommended">Strongly Recommended</SelectItem>
+                <SelectItem value="Recommended">Recommended</SelectItem>
+                <SelectItem value="Not Recommended">Not Recommended</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <div className="flex flex-row gap-3 items-center w-full sm:w-auto">
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-full sm:w-[150px]">
+                  <div className="flex items-center gap-2">
+                    <ArrowUpDown className="h-4 w-4" />
+                    <SelectValue placeholder="Sort by" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="match">Best Match</SelectItem>
+                  <SelectItem value="recent">Most Recent</SelectItem>
+                  <SelectItem value="experience">Experience</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="flex-1 flex justify-end">
+                <ToggleGroup type="single" value={view} onValueChange={v => (v === 'card' || v === 'table') && setView(v)}>
+                  <ToggleGroupItem value="card" aria-label="Card View">Card View</ToggleGroupItem>
+                  <ToggleGroupItem value="table" aria-label="Table View">Table View</ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+            </div>
           </div>
         </div>
 
+        {/* Candidate List */}
         {loading ? (
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="flex flex-col items-center space-y-4">
@@ -223,7 +360,7 @@ export default function CandidatesPage() {
             </p>
             <p className="text-sm text-muted-foreground">Process some resumes to see evaluated candidates.</p>
           </div>
-        ) : (
+        ) : view === 'card' ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {filteredEvaluations.map((evaluation) => (
               <Card key={evaluation._id} className="bg-card/80 backdrop-blur-sm hover:shadow-lg transition-all duration-200">
@@ -231,9 +368,8 @@ export default function CandidatesPage() {
                   <div className="flex items-start justify-between">
                     <div className="space-y-1">
                       <CardTitle className="text-xl">{evaluation.candidateInfo.name}</CardTitle>
-                      <CardDescription className="text-base">{evaluation.qualifications.currentRole}</CardDescription>
-                      {evaluation.jobTitle && (
-                        <p className="text-sm text-muted-foreground">Evaluated for {evaluation.jobTitle}</p>
+                      {jobTitles[evaluation.jobId] && (
+                        <p className="text-sm text-muted-foreground">Evaluated for {jobTitles[evaluation.jobId]}</p>
                       )}
                     </div>
                     <div className="flex flex-col items-end gap-2">
@@ -274,9 +410,7 @@ export default function CandidatesPage() {
                       )}
                     </div>
                   </div>
-
                   <Separator />
-
                   <div className="flex justify-between items-center pt-2">
                     <div className="text-sm text-muted-foreground">
                       {new Date(evaluation.metadata.createdAt).toLocaleDateString()}
@@ -288,6 +422,132 @@ export default function CandidatesPage() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border bg-card/80 shadow-sm">
+            {/* Entries per page dropdown */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-muted-foreground">Show</span>
+                <Select value={entriesPerPage.toString()} onValueChange={(value) => setEntriesPerPage(Number(value))}>
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
+                <span className="text-sm text-muted-foreground">entries</span>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredEvaluations.length)} of {filteredEvaluations.length} entries
+              </div>
+            </div>
+
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Candidate</TableHead>
+                  <TableHead>Job Applied</TableHead>
+                  <TableHead>Match Score</TableHead>
+                  <TableHead>Recommendation</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {currentItems.map((evaluation) => (
+                  <TableRow key={evaluation._id}>
+                    <TableCell>
+                      <div className="flex items-center space-x-3">
+                        <Avatar>
+                          <AvatarFallback>{getInitials(evaluation.candidateInfo.name)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="font-medium">{evaluation.candidateInfo.name}</div>
+                          <div className="text-sm text-muted-foreground">{evaluation.candidateInfo.email}</div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm font-medium">
+                        {jobTitles[evaluation.jobId] || 'Unknown Job'}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <div className="text-lg font-bold text-primary">
+                          {evaluation.evaluation.matchScore}%
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={
+                        evaluation.evaluation.recommendation === 'Strongly Recommended' ? 'default' :
+                        evaluation.evaluation.recommendation === 'Recommended' ? 'secondary' :
+                        'outline'
+                      }>
+                        {evaluation.evaluation.recommendation}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {evaluation.metadata.manualStatus ? (
+                        <Badge variant={
+                          evaluation.metadata.manualStatus === 'shortlisted' ? 'default' :
+                          evaluation.metadata.manualStatus === 'rejected' ? 'destructive' :
+                          'secondary'
+                        }>
+                          {evaluation.metadata.manualStatus}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline">Not Set</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm text-muted-foreground">
+                        {new Date(evaluation.metadata.createdAt).toLocaleDateString()}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link href={`/candidates/${evaluation._id}`}>View</Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between p-4 border-t">
+                <div className="text-sm text-muted-foreground">
+                  Page {currentPage} of {totalPages}
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

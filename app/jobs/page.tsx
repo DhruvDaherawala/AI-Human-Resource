@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from 'react-hot-toast';
 import { Plus, Pencil, Trash2, Briefcase, X, MapPin, Calendar, Building2, Clock } from 'lucide-react';
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 type Job = {
   _id: string;
@@ -53,6 +54,7 @@ export default function JobsPage() {
   const [requirements, setRequirements] = useState<string[]>([]);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [view, setView] = useState<'card' | 'table'>('card');
 
   // Fetch jobs
   const fetchJobs = async () => {
@@ -470,91 +472,173 @@ export default function JobsPage() {
             <p className="text-sm mt-2">Start by posting a new job</p>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {jobs.map((job) => (
-              <div
-                key={job._id}
-                className="group relative rounded-lg border bg-card/80 backdrop-blur-sm p-4 hover:shadow-lg transition-all duration-200 hover:border-primary/50"
-              >
-                <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => handleEdit(job)}
-                    className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
+          <>
+            <div className="flex justify-end mb-4">
+              <ToggleGroup type="single" value={view} onValueChange={v => (v === 'card' || v === 'table') && setView(v)}>
+                <ToggleGroupItem value="card" aria-label="Card View">Card View</ToggleGroupItem>
+                <ToggleGroupItem value="table" aria-label="Table View">Table View</ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+            {view === 'card' ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {jobs.map((job) => (
+                  <div
+                    key={job._id}
+                    className="group relative rounded-lg border bg-card/80 backdrop-blur-sm p-4 hover:shadow-lg transition-all duration-200 hover:border-primary/50"
                   >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => handleDelete(job._id)}
-                    className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <Briefcase className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="space-y-1 min-w-0">
-                      <h3 className="font-semibold truncate group-hover:text-primary transition-colors">
-                        {job.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {job.company}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
-                      {job.type}
-                    </span>
-                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium
-                      ${job.status === 'active' 
-                        ? 'bg-green-100/80 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
-                        : 'bg-red-100/80 text-red-800 dark:bg-red-900/30 dark:text-red-300'}`}>
-                      {job.status}
-                    </span>
-                  </div>
-
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <MapPin className="h-4 w-4" />
-                      <span className="truncate">{job.location}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <span>Salary: {job.salary}</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t">
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        <span>{new Date(job.postedDate).toLocaleDateString()}</span>
-                      </div>
+                    <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <Button
+                        size="icon"
                         variant="ghost"
-                        size="sm"
-                        className="h-7 text-primary hover:text-primary/80"
-                        onClick={() => {
-                          setSelectedJob(job);
-                          setIsDetailsModalOpen(true);
-                        }}
+                        onClick={() => handleEdit(job)}
+                        className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
                       >
-                        View Details
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleDelete(job._id)}
+                        className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                          <Briefcase className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="space-y-1 min-w-0">
+                          <h3 className="font-semibold truncate group-hover:text-primary transition-colors">
+                            {job.title}
+                          </h3>
+                          <p className="text-sm text-muted-foreground truncate">
+                            {job.company}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
+                          {job.type}
+                        </span>
+                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium
+                          ${job.status === 'active' 
+                            ? 'bg-green-100/80 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
+                            : 'bg-red-100/80 text-red-800 dark:bg-red-900/30 dark:text-red-300'}`}>
+                          {job.status}
+                        </span>
+                      </div>
+
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <MapPin className="h-4 w-4" />
+                          <span className="truncate">{job.location}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <span>Salary: {job.salary}</span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            <span>{new Date(job.postedDate).toLocaleDateString()}</span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-primary hover:text-primary/80"
+                            onClick={() => {
+                              setSelectedJob(job);
+                              setIsDetailsModalOpen(true);
+                            }}
+                          >
+                            View Details
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+            ) : (
+              <div className="overflow-x-auto rounded-lg border bg-card/80 shadow-sm">
+                <table className="w-full min-w-[900px]">
+                  <thead>
+                    <tr className="bg-muted/50 border-b">
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground">Title</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground">Company</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground">Location</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground">Type</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground">Status</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground">Salary</th>
+                      <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground">Posted</th>
+                      <th className="px-6 py-4 text-right text-sm font-semibold text-muted-foreground">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {jobs.map((job) => (
+                      <tr key={job._id} className="hover:bg-muted/50 transition-colors">
+                        <td className="px-6 py-4 font-medium">{job.title}</td>
+                        <td className="px-6 py-4 text-muted-foreground">{job.company}</td>
+                        <td className="px-6 py-4 text-muted-foreground">{job.location}</td>
+                        <td className="px-6 py-4">
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
+                            {job.type}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium
+                            ${job.status === 'active' 
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' 
+                              : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'}`}>
+                            {job.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-muted-foreground">{job.salary}</td>
+                        <td className="px-6 py-4 text-muted-foreground">{new Date(job.postedDate).toLocaleDateString()}</td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center gap-1 justify-end">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => handleEdit(job)}
+                              className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => handleDelete(job._id)}
+                              className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-primary hover:text-primary/80"
+                              onClick={() => {
+                                setSelectedJob(job);
+                                setIsDetailsModalOpen(true);
+                              }}
+                            >
+                              View Details
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
         )}
 
         {/* Job Details Modal */}
