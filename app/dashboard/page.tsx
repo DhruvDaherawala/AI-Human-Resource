@@ -5,6 +5,7 @@ import { DashboardStats } from '@/components/dashboard-stats';
 import { useAuth } from '@/lib/auth-context';
 import { EvaluationBreakdown } from '@/components/analytics/evaluation-breakdown';
 import { QuickActions } from '@/components/quick-actions';
+import { Button } from '@/components/ui/button';
 
 type Stats = {
   totalResumes: number;
@@ -45,14 +46,16 @@ export default function DashboardPage() {
   const [evaluationStats, setEvaluationStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dateRange, setDateRange] = useState('all');
 
   useEffect(() => {
     async function fetchData() {
+      setLoading(true);
       try {
         const [statsRes, jobsRes, evaluationsRes] = await Promise.all([
-          fetch('/api/resumes/stats'),
-          fetch('/api/jobs'),
-          fetch('/api/evaluations'),
+          fetch(`/api/resumes/stats?range=${dateRange}`),
+          fetch(`/api/jobs?range=${dateRange}`),
+          fetch(`/api/evaluations?range=${dateRange}`),
         ]);
 
         const statsData = await statsRes.json();
@@ -89,7 +92,7 @@ export default function DashboardPage() {
     }
 
     fetchData();
-  }, []);
+  }, [dateRange]);
 
   if (error) {
     return (
@@ -112,13 +115,19 @@ export default function DashboardPage() {
           </p>
         </div>
       </div>
+      <div className="flex space-x-2">
+        <Button variant={dateRange === 'today' ? 'default' : 'outline'} onClick={() => setDateRange('today')}>Today</Button>
+        <Button variant={dateRange === '7d' ? 'default' : 'outline'} onClick={() => setDateRange('7d')}>Last 7 days</Button>
+        <Button variant={dateRange === '30d' ? 'default' : 'outline'} onClick={() => setDateRange('30d')}>Last 30 days</Button>
+        <Button variant={dateRange === 'all' ? 'default' : 'outline'} onClick={() => setDateRange('all')}>All time</Button>
+      </div>
 
       <DashboardStats stats={stats} loading={loading} />
       
-      {/* <div className="grid gap-8 md:grid-cols-2">
+      <div className="grid gap-8 md:grid-cols-2">
         <EvaluationBreakdown evaluationStats={evaluationStats} loading={loading} />
         <QuickActions />
-      </div> */}
+      </div>
     </div>
   );
 }

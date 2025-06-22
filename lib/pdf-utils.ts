@@ -1,6 +1,5 @@
-import * as pdfjsLib from "pdfjs-dist";
-import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
-import path from "path";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf";
+import { getDocument, GlobalWorkerOptions } from "pdfjs-dist/legacy/build/pdf";
 
 // Initialize PDF.js worker
 export function initializePdfWorker() {
@@ -9,24 +8,20 @@ export function initializePdfWorker() {
   if (typeof window === "undefined") {
     if (isVercel) {
       GlobalWorkerOptions.workerSrc = false as any;
-      console.log("Vercel worker src is false");
+      console.log("✅ PDF.js worker disabled on Vercel");
     } else {
-      // Server-side configuration
       try {
-        // Try to use the worker from node_modules
         const pdfjsWorker = require.resolve(
-          "pdfjs-dist/build/pdf.worker.min.js"
+          "pdfjs-dist/legacy/build/pdf.worker.min.js"
         );
         GlobalWorkerOptions.workerSrc = pdfjsWorker;
-        console.log("Vercel worker src is true");
+        console.log("✅ PDF.js worker loaded locally");
       } catch (error) {
-        // Fallback to CDN if worker file is not found
         GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-        console.log("Vercel worker src is false");
+        console.warn("⚠️ Fallback to CDN worker");
       }
     }
   } else {
-    // Client-side configuration
     GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
   }
 }
@@ -49,7 +44,7 @@ export async function extractTextFromPdfData(
 
     return fullText;
   } catch (error) {
-    console.error("Error extracting text from PDF:", error);
+    console.error("❌ Error extracting text from PDF:", error);
     throw error;
   }
 }

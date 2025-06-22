@@ -1,6 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart, FileText, Users, Briefcase, CheckCircle2, XCircle, Circle } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card, Col, Row, Statistic } from 'antd';
 
 type Stats = {
   totalResumes: number;
@@ -28,74 +28,70 @@ export function DashboardStats({ stats, loading }: DashboardStatsProps) {
     {
       title: "Total Resumes",
       value: stats?.totalResumes,
-      icon: FileText,
-      bgColor: "bg-blue-50 dark:bg-blue-950/30",
+      icon: <FileText className="h-8 w-8 text-blue-500" />,
     },
     {
       title: "Active Jobs",
       value: stats?.activeJobs,
-      icon: Briefcase,
-      bgColor: "bg-indigo-50 dark:bg-indigo-950/30",
+      icon: <Briefcase className="h-8 w-8 text-green-500" />,
     },
     {
       title: "Total Evaluations",
       value: stats?.shortlistedCandidates,
-      icon: Users,
-      bgColor: "bg-purple-50 dark:bg-purple-950/30",
+      icon: <Users className="h-8 w-8 text-purple-500" />,
     },
     {
       title: "Avg. Match Rate",
       value: stats?.avgMatchRate,
-      icon: BarChart,
-      isPercentage: true,
-      bgColor: "bg-orange-50 dark:bg-orange-950/30",
+      icon: <BarChart className="h-8 w-8 text-yellow-500" />,
+      suffix: "%",
     },
     {
       title: "Pending Resumes",
       value: stats?.resumeStats?.pending,
-      icon: Circle,
-      bgColor: "bg-yellow-50 dark:bg-yellow-950/30",
+      icon: <Circle className="h-8 w-8 text-gray-500" />,
+    
     },
     {
       title: "Strongly Recommended",
       value: stats?.evaluationStats?.stronglyRecommended,
-      icon: CheckCircle2,
-      bgColor: "bg-green-50 dark:bg-green-950/30",
+      icon: <CheckCircle2 className="h-8 w-8 text-green-600" />,
+     
     },
     {
       title: "Recommended",
       value: stats?.evaluationStats?.recommended,
-      icon: CheckCircle2,
-      bgColor: "bg-green-50/70 dark:bg-green-950/50",
+      icon: <CheckCircle2 className="h-8 w-8 text-green-400" />,
+      
     },
     {
       title: "Not Recommended",
       value: stats?.evaluationStats?.notRecommended,
-      icon: XCircle,
-      bgColor: "bg-red-50 dark:bg-red-950/30",
+      icon: <XCircle className="h-8 w-8 text-red-500" />,
+      
     },
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <Row gutter={[16, 16]}>
       {statCards.map((card, index) => (
-        <Card key={index} className={card.bgColor}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
-            <card.icon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-1/2" />
-            ) : (
-              <div className="text-2xl font-bold">
-                {card.value}
-                {card.isPercentage && "%"}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          <Col key={index} xs={24} sm={12} md={12} lg={6}>
+              <Card>
+                  {loading ? (
+                      <Skeleton className="h-24 w-full" />
+                  ) : (
+                      <Statistic
+                          title={<span className="text-base font-medium text-muted-foreground">{card.title}</span>}
+                          value={card.value}
+                          precision={0}
+                          prefix={card.icon}
+                          suffix={card.suffix}
+                          valueStyle={{ fontSize: '2rem', fontWeight: 'bold' }}
+                      />
+                  )}
+              </Card>
+          </Col>
       ))}
-    </div>
+  </Row>
   )
 }

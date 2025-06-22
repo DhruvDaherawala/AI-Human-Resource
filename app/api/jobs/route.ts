@@ -1,13 +1,45 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import Job from '@/models/Job'
 import { connectToDatabase } from '@/lib/mongodb'
 
-export async function GET() {
+const getDateFilter = (range: string | null, dateField: string) => {
+    if (!range || range === 'all') {
+      return {};
+    }
+  
+    const now = new Date();
+    let startDate;
+  
+    switch (range) {
+      case 'today':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        break;
+      case '7d':
+        startDate = new Date();
+        startDate.setDate(now.getDate() - 7);
+        break;
+      case '30d':
+        startDate = new Date();
+        startDate.setDate(now.getDate() - 30);
+        break;
+      default:
+        return {};
+    }
+  
+    return { [dateField]: { $gte: startDate } };
+};
+
+export async function GET(request: NextRequest) {
   try {
     console.log('Connecting to MongoDB...');
     await connectToDatabase();
+
+    const { searchParams } = new URL(request.url);
+    const range = searchParams.get('range');
+    const dateFilter = getDateFilter(range, 'postedDate');
+
     console.log('Fetching jobs...');
-    const jobs = await Job.find({}).sort({ postedDate: -1 });
+    const jobs = await Job.find(dateFilter).sort({ postedDate: -1 });
     console.log(`Found ${jobs.length} jobs`);
     return NextResponse.json(jobs);
   } catch (error) {

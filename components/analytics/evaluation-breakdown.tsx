@@ -1,6 +1,6 @@
 'use client';
 
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -17,10 +17,25 @@ type EvaluationBreakdownProps = {
 
 export function EvaluationBreakdown({ evaluationStats, loading }: EvaluationBreakdownProps) {
   const data = [
-    { name: 'Strongly Recommended', count: evaluationStats?.stronglyRecommended || 0 },
-    { name: 'Recommended', count: evaluationStats?.recommended || 0 },
-    { name: 'Not Recommended', count: evaluationStats?.notRecommended || 0 },
+    { name: 'Strongly Recommended', value: evaluationStats?.stronglyRecommended || 0 },
+    { name: 'Recommended', value: evaluationStats?.recommended || 0 },
+    { name: 'Not Recommended', value: evaluationStats?.notRecommended || 0 },
   ];
+
+  const COLORS = ['#0088FE', '#00C49F', '#FF8042'];
+
+  const RADIAN = Math.PI / 180;
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }: any) => {
+      const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+      const x = cx + radius * Math.cos(-midAngle * RADIAN);
+      const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+      return (
+          <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central">
+              {`${(percent * 100).toFixed(0)}%`}
+          </text>
+      );
+  };
 
   return (
     <Card>
@@ -30,15 +45,26 @@ export function EvaluationBreakdown({ evaluationStats, loading }: EvaluationBrea
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="h-[300px] w-full">
-            <Skeleton className="h-full w-full" />
+          <div className="h-[300px] w-full flex items-center justify-center">
+            <Skeleton className="h-48 w-48 rounded-full" />
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
+            <PieChart>
+              <Pie
+                  data={data}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={renderCustomizedLabel}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+              >
+                  {data.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+              </Pie>
               <Tooltip
                 contentStyle={{
                   background: "hsl(var(--background))",
@@ -46,8 +72,7 @@ export function EvaluationBreakdown({ evaluationStats, loading }: EvaluationBrea
                 }}
               />
               <Legend />
-              <Bar dataKey="count" fill="hsl(var(--primary))" />
-            </BarChart>
+            </PieChart>
           </ResponsiveContainer>
         )}
       </CardContent>

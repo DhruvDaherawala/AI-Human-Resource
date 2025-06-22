@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'react-hot-toast'
 
+const DEFAULT_TEMPLATE = `Hello {candidateName},\n\nYour interview is scheduled for {interviewDate} at {interviewTime}.\n\nBest regards,\n{companyName}`;
+
 export default function SettingsPage() {
   const { user, loading, login } = useAuth()
   const [formData, setFormData] = useState({
@@ -22,6 +24,8 @@ export default function SettingsPage() {
     newPassword: '',
     confirmPassword: '',
   })
+  const [emailTemplate, setEmailTemplate] = useState(DEFAULT_TEMPLATE)
+  const [templateLoading, setTemplateLoading] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -32,6 +36,7 @@ export default function SettingsPage() {
         companyName: user.companyName || '',
         phoneNumber: user.phoneNumber || '',
       })
+      // TODO: fetch template from backend
     }
   }, [user])
 
@@ -100,6 +105,19 @@ export default function SettingsPage() {
       toast.error(error.message || 'An error occurred.', { id: toastId })
     }
   }
+
+  const handleSaveTemplate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setTemplateLoading(true)
+    try {
+      // TODO: Save template to backend
+      toast.success('Email template saved!')
+    } catch (err) {
+      toast.error('Failed to save template')
+    } finally {
+      setTemplateLoading(false)
+    }
+  }
   
   if (loading) {
     return (
@@ -123,10 +141,34 @@ export default function SettingsPage() {
         <h1 className="text-2xl font-bold">Settings</h1>
         <p className="text-muted-foreground">Manage your account and company settings.</p>
       </div>
+      {/* Company Info Display Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Company Information</CardTitle>
+          <CardDescription>Current company details (read-only).</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div>
+              <Label>Company Name</Label>
+              <div className="border rounded px-3 py-2 bg-muted">{formData.companyName || '-'}</div>
+            </div>
+            <div>
+              <Label>HR Email</Label>
+              <div className="border rounded px-3 py-2 bg-muted">{formData.hrEmail || '-'}</div>
+            </div>
+            <div>
+              <Label>Phone Number</Label>
+              <div className="border rounded px-3 py-2 bg-muted">{formData.phoneNumber || '-'}</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
       <div className="grid gap-6 lg:grid-cols-2">
+        {/* Update Form */}
         <Card>
           <CardHeader>
-            <CardTitle>Profile Information</CardTitle>
+            <CardTitle>Update Company & Profile</CardTitle>
             <CardDescription>Update your personal and company details.</CardDescription>
           </CardHeader>
           <CardContent>
@@ -158,6 +200,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+        {/* Change Password */}
         <Card>
           <CardHeader>
             <CardTitle>Change Password</CardTitle>
@@ -182,6 +225,30 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       </div>
+      {/* Email Template Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Interview Email Template</CardTitle>
+          <CardDescription>
+            Set the default email template for interview scheduling.<br />
+            Available variables: <code>{'{candidateName}'}</code>, <code>{'{interviewDate}'}</code>, <code>{'{interviewTime}'}</code>, <code>{'{interviewType}'}</code>, <code>{'{notes}'}</code>, <code>{'{companyName}'}</code>
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSaveTemplate} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="emailTemplate">Email Template</Label>
+              <textarea
+                id="emailTemplate"
+                className="w-full min-h-[120px] border rounded p-2 font-mono"
+                value={emailTemplate}
+                onChange={e => setEmailTemplate(e.target.value)}
+              />
+            </div>
+            <Button type="submit" disabled={templateLoading}>{templateLoading ? 'Saving...' : 'Save Template'}</Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   )
 } 
