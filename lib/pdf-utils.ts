@@ -3,8 +3,10 @@ import { getDocument, GlobalWorkerOptions } from "pdfjs-dist/legacy/build/pdf";
 
 // Initialize PDF.js worker
 export function initializePdfWorker() {
-  // Always use CDN for both server-side and client-side
-  GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+  if (typeof window !== "undefined") {
+    // Only configure the worker on the client-side
+    GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+  }
 }
 
 // Extract text from PDF data
@@ -12,7 +14,11 @@ export async function extractTextFromPdfData(
   pdfData: Uint8Array
 ): Promise<string> {
   try {
-    const loadingTask = getDocument({ data: pdfData });
+    const loadingTask = getDocument({
+      data: pdfData,
+      // Disable worker on the server-side to prevent errors in Vercel
+      worker: typeof window === "undefined" ? (false as any) : undefined,
+    });
     const pdfDocument = await loadingTask.promise;
 
     let fullText = "";
