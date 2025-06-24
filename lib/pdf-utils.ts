@@ -3,23 +3,8 @@ import { getDocument, GlobalWorkerOptions } from "pdfjs-dist/legacy/build/pdf";
 
 // Initialize PDF.js worker
 export function initializePdfWorker() {
-  if (typeof window === "undefined") {
-    // Server-side rendering
-    try {
-      const pdfjsWorkerPath = require.resolve(
-        "pdfjs-dist/legacy/build/pdf.worker.min.js"
-      );
-      GlobalWorkerOptions.workerSrc = pdfjsWorkerPath;
-      console.log("✅ PDF.js worker loaded from:", pdfjsWorkerPath);
-    } catch (error) {
-      // Fallback to CDN if local worker resolution fails
-      GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-      console.warn("⚠️ Using CDN for PDF.js worker due to error:", error);
-    }
-  } else {
-    // Client-side rendering
-    GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-  }
+  // Always use CDN for both server-side and client-side
+  GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 }
 
 // Extract text from PDF data
