@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server';
-import { initializePdfWorker, extractTextFromPdfData, base64ToUint8Array } from '@/lib/pdf-utils';
-
-// Initialize PDF.js worker
-initializePdfWorker();
+import { extractTextFromPdfData, base64ToUint8Array } from '@/lib/pdf-utils';
 
 export async function POST(request: Request) {
   try {
