@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import CandidateEvaluation from '@/models/CandidateEvaluation';
 import { connectToDatabase } from '@/lib/mongodb';
+import Job from '@/models/Job';
 
 export async function PATCH(
   request: Request,
@@ -30,7 +31,12 @@ export async function PATCH(
       );
     }
 
-    return NextResponse.json(evaluation);
+    // Populate job title
+    const job = await Job.findById(evaluation.jobId);
+    const evaluationObj = evaluation.toObject();
+    evaluationObj.jobTitle = job ? job.title : '';
+
+    return NextResponse.json(evaluationObj);
   } catch (error) {
     console.error('Error updating evaluation status:', error);
     return NextResponse.json(

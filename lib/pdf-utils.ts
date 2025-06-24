@@ -3,25 +3,21 @@ import { getDocument, GlobalWorkerOptions } from "pdfjs-dist/legacy/build/pdf";
 
 // Initialize PDF.js worker
 export function initializePdfWorker() {
-  const isVercel = process.env.VERCEL === "1";
-
   if (typeof window === "undefined") {
-    if (isVercel) {
-      GlobalWorkerOptions.workerSrc = false as any;
-      console.log("✅ PDF.js worker disabled on Vercel");
-    } else {
-      try {
-        const pdfjsWorker = require.resolve(
-          "pdfjs-dist/legacy/build/pdf.worker.min.js"
-        );
-        GlobalWorkerOptions.workerSrc = pdfjsWorker;
-        console.log("✅ PDF.js worker loaded locally");
-      } catch (error) {
-        GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-        console.warn("⚠️ Fallback to CDN worker");
-      }
+    // Server-side rendering
+    try {
+      const pdfjsWorkerPath = require.resolve(
+        "pdfjs-dist/legacy/build/pdf.worker.min.js"
+      );
+      GlobalWorkerOptions.workerSrc = pdfjsWorkerPath;
+      console.log("✅ PDF.js worker loaded from:", pdfjsWorkerPath);
+    } catch (error) {
+      // Fallback to CDN if local worker resolution fails
+      GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+      console.warn("⚠️ Using CDN for PDF.js worker due to error:", error);
     }
   } else {
+    // Client-side rendering
     GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
   }
 }
