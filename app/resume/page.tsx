@@ -28,6 +28,7 @@ import {
 import { Trash2 } from 'lucide-react';
 import { parseResumeDocument } from '@/lib/resume-parser';
 import CandidateEvaluation from '@/models/CandidateEvaluation';
+import ProcessingOverlay from '@/components/ProcessingOverlay';
 
 type Resume = {
   _id: string;
@@ -53,6 +54,8 @@ export default function ResumesPage() {
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [processingAll, setProcessingAll] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingState, setProcessingState] = useState({ current: 0, total: 0, message: '' });
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
@@ -256,198 +259,39 @@ export default function ResumesPage() {
       return;
     }
 
-    console.log('Starting to process resumes...');
-    setProcessingAll(true);
-    let hasErrors = false;
-    const errorDetails: { filename: string; error: string }[] = [];
+    setIsProcessing(true);
+    setProcessingState({ current: 0, total: pendingResumes.length, message: 'Starting evaluations...' });
 
-    try {
-      // Fetch active jobs first
-      const jobsResponse = await fetch('/api/jobs?status=active');
-      const jobs = await jobsResponse.json();
+    let successCount = 0;
+
+    for (let i = 0; i < pendingResumes.length; i++) {
+      const resume = pendingResumes[i];
+      setProcessingState(prev => ({ ...prev, current: i + 1, message: `Processing ${resume.filename}...` }));
       
-      if (!jobs || jobs.length === 0) {
-        throw new Error('No active jobs found for evaluation');
-      }
-
-      // Fetch full resume data for each pending resume
-      const resumeDataPromises = pendingResumes.map(async (resume) => {
-        try {
-          console.log(`Fetching resume: ${resume.filename} (ID: ${resume._id})`);
-          const res = await fetch(`/api/resume/${resume._id}`);
-          
-          if (!res.ok) {
-            const errorText = await res.text();
-            const error = `Failed to fetch resume: ${res.statusText} - ${errorText}`;
-            console.error(`Failed to fetch resume ${resume.filename}:`, {
-              status: res.status,
-              statusText: res.statusText,
-              error: errorText
-            });
-            errorDetails.push({ filename: resume.filename, error });
-            throw new Error(error);
-          }
-          
-          const data = await res.json();
-          if (!data || !data.data) {
-            const error = `Invalid resume data: No data field found`;
-            console.error(`Invalid resume data for ${resume.filename}:`, data);
-            errorDetails.push({ filename: resume.filename, error });
-            throw new Error(error);
-          }
-
-          return data;
-        } catch (error) {
-          console.error(`Error fetching resume ${resume.filename}:`, error);
-          hasErrors = true;
-          return null;
-        }
-      });
-
-      const resumeData = await Promise.all(resumeDataPromises);
-      const validResumeData = resumeData.filter(data => data !== null);
-      console.log('Fetched all resume data:', validResumeData.length);
-      
-      if (validResumeData.length === 0) {
-        throw new Error('No valid resume data found to process');
-      }
-      
-      // Process each resume
-      for (const resume of validResumeData) {
-        try {
-          console.log(`\nProcessing resume: ${resume.filename}`);
-          if (!resume.data) {
-            const error = 'No data found in resume';
-            console.error(error, resume.filename);
-            errorDetails.push({ filename: resume.filename, error });
-            hasErrors = true;
-            continue;
-          }
-          
-          console.log('Starting text extraction...');
-          const extractedText = await parseResumeDocument(resume);
-          
-          if (!extractedText || extractedText.trim().length === 0) {
-            const error = 'No text content extracted from PDF';
-            console.error(error, resume.filename);
-            errorDetails.push({ filename: resume.filename, error });
-            hasErrors = true;
-            continue;
-          }
-
-          console.log('Text extraction successful, length:', extractedText.length);
-
-          // Evaluate resume against each active job
-          for (const job of jobs) {
-            try {
-              console.log(`Evaluating resume against job: ${job.title}`);
-              const startTime = Date.now();
-              const evaluation = await fetch('/api/evaluate-resume', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  resumeText: extractedText,
-                  jobDescription: job.description,
-                  jobRequirements: Array.isArray(job.requirements) ? job.requirements.join('\n') : job.requirements
-                })
-              }).then(res => res.json());
-
-              console.log(`AI Evaluation for ${resume.filename} against ${job.title}:`, evaluation);
-
-              // Store evaluation using the API endpoint
-              console.log('Preparing to store evaluation:', {
-                resumeId: resume._id,
-                jobId: job._id,
-                evaluation: evaluation
-              });
-
-              const storeResponse = await fetch('/api/store-evaluation', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  resumeId: resume._id,
-                  jobId: job._id,
-                  candidateInfo: evaluation.candidateInfo,
-                  qualifications: evaluation.qualifications,
-                  evaluation: evaluation.evaluation,
-                  analysis: evaluation.analysis,
-                  processingTime: Date.now() - startTime,
-                  metadata: evaluation.metadata
-                })
-              });
-
-              if (!storeResponse.ok) {
-                const errorData = await storeResponse.json();
-                console.error('Store evaluation failed:', {
-                  status: storeResponse.status,
-                  statusText: storeResponse.statusText,
-                  error: errorData
-                });
-                throw new Error(`Failed to store evaluation: ${errorData.error || 'Unknown error'}`);
-              }
-
-              const storeResult = await storeResponse.json();
-              console.log(`Stored evaluation for ${resume.filename} against ${job.title}:`, storeResult);
-            } catch (error) {
-              console.error(`Error evaluating resume ${resume.filename} against job ${job.title}:`, error);
-              errorDetails.push({ 
-                filename: resume.filename, 
-                error: `Failed to evaluate against job ${job.title}: ${error instanceof Error ? error.message : 'Unknown error'}`
-              });
-              hasErrors = true;
-            }
-          }
-          
-          // Update resume status
-          await handleUpdate(resume._id, 'reviewed');
-          console.log('Resume status updated to reviewed');
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          console.error(`Error processing resume ${resume.filename}:`, error);
-          errorDetails.push({ filename: resume.filename, error: errorMessage });
-          hasErrors = true;
-        }
-      }
-
-      if (hasErrors) {
-        const errorMessage = errorDetails.length > 0 
-          ? `Failed to process ${errorDetails.length} resume(s):\n${errorDetails.map(e => `- ${e.filename}: ${e.error}`).join('\n')}`
-          : 'Some resumes failed to process. Check console for details.';
-        
-        toast.error(errorMessage, {
+      try {
+        await processResume(resume);
+        successCount++;
+      } catch (error) {
+        console.error(`Failed to process ${resume.filename}:`, error);
+        toast.error(`Failed to process ${resume.filename}.`, {
           style: {
             background: '#FEE2E2',
             color: '#991B1B',
             border: '1px solid #FCA5A5'
-          },
-          duration: 5000 // Show for 5 seconds
-        });
-      } else {
-        toast.success('All resumes processed and evaluated successfully!', {
-          style: {
-            background: '#DCFCE7',
-            color: '#166534',
-            border: '1px solid #86EFAC'
           }
         });
       }
-    } catch (error) {
-      console.error('Error processing resumes:', error);
-      toast.error('Failed to process resumes: ' + (error instanceof Error ? error.message : 'Unknown error'), {
-        style: {
-          background: '#FEE2E2',
-          color: '#991B1B',
-          border: '1px solid #FCA5A5'
-        }
-      });
-    } finally {
-      setProcessingAll(false);
-      fetchResumes(); // Refresh the resume list
     }
+
+    setIsProcessing(false);
+    toast.success(`${successCount} of ${pendingResumes.length} resumes processed successfully.`, {
+      style: {
+        background: '#DCFCE7',
+        color: '#166534',
+        border: '1px solid #86EFAC'
+      }
+    });
+    fetchResumes();
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -557,36 +401,81 @@ export default function ResumesPage() {
 
   // Add a handler for processing a single resume
   const handleProcessSingle = async (resume: Resume) => {
-    setProcessingAll(true);
+    setIsProcessing(true);
+    setProcessingState({ current: 1, total: 1, message: `Processing ${resume.filename}...` });
+
     try {
-      // Reuse handleProcessAll logic but for a single resume
-      // Fetch active jobs first
+      await processResume(resume);
+      toast.success(`${resume.filename} processed successfully!`, {
+        style: {
+          background: '#DCFCE7',
+          color: '#166534',
+          border: '1px solid #86EFAC'
+        }
+      });
+    } catch (error) {
+      console.error(`Failed to process ${resume.filename}:`, error);
+      toast.error(`Failed to process ${resume.filename}.`, {
+        style: {
+          background: '#FEE2E2',
+          color: '#991B1B',
+          border: '1px solid #FCA5A5'
+        }
+      });
+    } finally {
+      setIsProcessing(false);
+      fetchResumes();
+    }
+  };
+
+  const processResume = async (resume: Resume) => {
+    // This is the core logic, extracted to be reusable
+    setResumes(prev => prev.map(r => 
+      r._id === resume._id ? { ...r, processingStatus: 'processing' } : r
+    ));
+
+    try {
+      // 1. Fetch active jobs
       const jobsResponse = await fetch('/api/jobs?status=active');
       const jobs = await jobsResponse.json();
       if (!jobs || jobs.length === 0) {
-        throw new Error('No active jobs found for evaluation');
+        throw new Error('No active jobs found for evaluation.');
       }
-      // Fetch full resume data
-      const res = await fetch(`/api/resume/${resume._id}`);
-      if (!res.ok) throw new Error('Failed to fetch resume');
-      const data = await res.json();
-      if (!data || !data.data) throw new Error('Invalid resume data');
-      // Extract text
-      const extractedText = await parseResumeDocument(data);
-      if (!extractedText || extractedText.trim().length === 0) throw new Error('No text content extracted from PDF');
-      // Process for each job
+
+      // 2. Fetch full resume data
+      const resumeResponse = await fetch(`/api/resume/${resume._id}`);
+      if (!resumeResponse.ok) throw new Error('Failed to fetch full resume data.');
+      const resumeData = await resumeResponse.json();
+      if (!resumeData || !resumeData.data) throw new Error('Invalid resume data format.');
+
+      // 3. Parse resume content
+      const extractedText = await parseResumeDocument(resumeData);
+      if (!extractedText || extractedText.trim().length === 0) {
+        throw new Error('No text could be extracted from the resume.');
+      }
+      
+      // 4. Evaluate resume against each job
       for (const job of jobs) {
         const startTime = Date.now();
-        const evaluation = await fetch('/api/evaluate-resume', {
+        const evaluationResponse = await fetch('/api/evaluate-resume', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             resumeText: extractedText,
             jobDescription: job.description,
-            jobRequirements: Array.isArray(job.requirements) ? job.requirements.join('\n') : job.requirements
+            jobRequirements: Array.isArray(job.requirements) ? job.requirements.join('\\n') : job.requirements
           })
-        }).then(res => res.json());
-        await fetch('/api/store-evaluation', {
+        });
+
+        if (!evaluationResponse.ok) {
+            const errorData = await evaluationResponse.json();
+            throw new Error(`Evaluation failed for job ${job.title}: ${errorData.error}`);
+        }
+        
+        const evaluation = await evaluationResponse.json();
+
+        // 5. Store the evaluation
+        const storeResponse = await fetch('/api/store-evaluation', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -600,488 +489,486 @@ export default function ResumesPage() {
             metadata: evaluation.metadata
           })
         });
+
+        if (!storeResponse.ok) {
+            const errorData = await storeResponse.json();
+            throw new Error(`Failed to store evaluation for job ${job.title}: ${errorData.error}`);
+        }
       }
-      await handleUpdate(resume._id, 'reviewed');
-      toast.success('Resume processed and evaluated successfully!');
+      
+      // 6. Update resume status in the UI
+      setResumes(prev => prev.map(r => 
+        r._id === resume._id ? { ...r, processingStatus: 'complete', status: 'processed' } : r
+      ));
+      
+      // 7. (Optional but recommended) Update resume status in the backend
+      await handleUpdate(resume._id, 'processed');
+
     } catch (error) {
-      toast.error('Failed to process resume: ' + (error instanceof Error ? error.message : 'Unknown error'));
-    } finally {
-      setProcessingAll(false);
-      fetchResumes();
+      setResumes(prev => prev.map(r => 
+        r._id === resume._id ? { ...r, processingStatus: 'error' } : r
+      ));
+      // Re-throw the error to be caught by the calling function
+      throw error;
     }
   };
 
   return (
-    <div className="container pb-8">
-      <h1 className="text-2xl font-bold mb-6">Resumes</h1>
+    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900">
+      {isProcessing && (
+        <ProcessingOverlay
+          current={processingState.current}
+          total={processingState.total}
+          message={processingState.message}
+        />
+      )}
+      <header className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Resumes</h1>
+        <div className="flex items-center space-x-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+                setUploadProgress([]);
+              }
+            }}
+            disabled={!fileInputRef.current?.files?.length}
+            className="h-9"
+          >
+            Clear
+          </Button>
+          <Button
+            type="submit"
+            disabled={uploading || !fileInputRef.current?.files?.length}
+            className="h-9"
+          >
+            {uploading ? (
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : (
+              <FileText className="h-4 w-4 mr-2" />
+            )}
+            Upload Files
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="destructive"
+                disabled={deletingAll}
+              >
+                {deletingAll ? (
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : <Trash2 className="w-4 h-4 mr-2" />}
+                Delete All
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete all {resumes.length} resumes
+                  from the system.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteAll}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Delete All
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <Button
+            variant={viewMode === 'table' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('table')}
+            className="h-9"
+          >
+            <Table className="h-4 w-4 mr-2" />
+            Table View
+          </Button>
+          <Button
+            variant={viewMode === 'card' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('card')}
+            className="h-9"
+          >
+            <LayoutGrid className="h-4 w-4 mr-2" />
+            Card View
+          </Button>
+        </div>
+      </header>
 
-      <div className="flex flex-col gap-6 mb-6">
-        {/* File Upload Section */}
-        <div className="rounded-xl border bg-card/80 backdrop-blur-sm p-6">
-          <form onSubmit={handleUpload}>
-            <div
-              className={cn(
-                "border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200",
-                isDragging ? "border-primary bg-primary/5" : "border-muted-foreground/25",
-                "hover:border-primary/50 hover:bg-primary/5 cursor-pointer"
-              )}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <div className="flex flex-col items-center gap-4">
-                <div className="rounded-full bg-primary/10 p-4">
-                  <Upload className="h-8 w-8 text-primary" />
-                </div>
-                <div className="space-y-2">
-                  <p className="text-lg font-medium">
-                    {fileInputRef.current?.files?.length 
-                      ? `${fileInputRef.current.files.length} file(s) selected`
-                      : "Click to upload or drag and drop"}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    PDF, DOC, or DOCX (max. 10MB per file)
-                  </p>
-                </div>
-                {fileInputRef.current?.files && fileInputRef.current.files.length > 0 && (
-                  <div className="mt-2 text-sm text-muted-foreground">
-                    {Array.from(fileInputRef.current.files).map((file, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        <span className="truncate max-w-[300px]">{file.name}</span>
-                        <span className="text-xs">({(file.size / 1024).toFixed(1)} KB)</span>
-                      </div>
-                    ))}
-                  </div>
+      <div className="container pb-8">
+        <div className="flex flex-col gap-6 mb-6">
+          <div className="rounded-xl border bg-card/80 backdrop-blur-sm p-6">
+            <form onSubmit={handleUpload}>
+              <div
+                className={cn(
+                  "border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200",
+                  isDragging ? "border-primary bg-primary/5" : "border-muted-foreground/25",
+                  "hover:border-primary/50 hover:bg-primary/5 cursor-pointer"
                 )}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <div className="flex flex-col items-center gap-4">
+                  <div className="rounded-full bg-primary/10 p-4">
+                    <Upload className="h-8 w-8 text-primary" />
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-lg font-medium">
+                      {fileInputRef.current?.files?.length 
+                        ? `${fileInputRef.current.files.length} file(s) selected`
+                        : "Click to upload or drag and drop"}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      PDF, DOC, or DOCX (max. 10MB per file)
+                    </p>
+                  </div>
+                  {fileInputRef.current?.files && fileInputRef.current.files.length > 0 && (
+                    <div className="mt-2 text-sm text-muted-foreground">
+                      {Array.from(fileInputRef.current.files).map((file, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          <span className="truncate max-w-[300px]">{file.name}</span>
+                          <span className="text-xs">({(file.size / 1024).toFixed(1)} KB)</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-            <input
-              type="file"
-              ref={fileInputRef}
-              multiple
-              accept=".pdf,.doc,.docx"
-              className="hidden"
-              onChange={(e) => {
-                if (e.target.files?.length) {
-                  setUploadProgress(Array.from(e.target.files).map(file => ({
-                    filename: file.name,
-                    progress: 0,
-                    status: 'preparing'
-                  })));
-                }
-              }}
-            />
-            <div className="mt-4 flex justify-end gap-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  if (fileInputRef.current) {
-                    fileInputRef.current.value = '';
-                    setUploadProgress([]);
+              <input
+                type="file"
+                ref={fileInputRef}
+                multiple
+                accept=".pdf,.doc,.docx"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files?.length) {
+                    setUploadProgress(Array.from(e.target.files).map(file => ({
+                      filename: file.name,
+                      progress: 0,
+                      status: 'preparing'
+                    })));
                   }
                 }}
-                disabled={!fileInputRef.current?.files?.length}
-                className="flex items-center gap-2"
-              >
-                Clear
-              </Button>
-              <Button
-                type="submit"
-                disabled={uploading || !fileInputRef.current?.files?.length}
-                className="flex items-center gap-2"
-              >
-                {uploading ? (
-                  <>
-                    <span className="animate-spin mr-2">⏳</span>
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <FileText className="h-4 w-4" />
-                    Upload Files
-                  </>
-                )}
-              </Button>
-            </div>
-          </form>
-        </div>
+              />
+            </form>
+          </div>
 
-        {/* Upload Progress */}
-        {uploadProgress.length > 0 && (
-          <div className="rounded-xl border bg-card/80 backdrop-blur-sm p-6">
-            <h3 className="text-lg font-semibold mb-4">Upload Progress</h3>
-            <div className="space-y-4">
-              {uploadProgress.map((progress, index) => (
-                <div key={index} className="flex items-center gap-4">
-                  <div className="w-48 truncate text-sm font-medium">{progress.filename}</div>
-                  <div className="flex-1">
-                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div
-                        className={cn(
-                          "h-full transition-all duration-300",
-                          progress.status === 'error' ? 'bg-red-500' : 'bg-primary'
-                        )}
-                        style={{ width: `${progress.progress}%` }}
-                      />
+          {uploadProgress.length > 0 && (
+            <div className="rounded-xl border bg-card/80 backdrop-blur-sm p-6">
+              <h3 className="text-lg font-semibold mb-4">Upload Progress</h3>
+              <div className="space-y-4">
+                {uploadProgress.map((progress, index) => (
+                  <div key={index} className="flex items-center gap-4">
+                    <div className="w-48 truncate text-sm font-medium">{progress.filename}</div>
+                    <div className="flex-1">
+                      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className={cn(
+                            "h-full transition-all duration-300",
+                            progress.status === 'error' ? 'bg-red-500' : 'bg-primary'
+                          )}
+                          style={{ width: `${progress.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div className="w-24 text-right text-sm">
+                      {progress.status === 'preparing' && (
+                        <span className="text-yellow-600">Preparing...</span>
+                      )}
+                      {progress.status === 'uploading' && (
+                        <span className="text-blue-600">Uploading...</span>
+                      )}
+                      {progress.status === 'complete' && (
+                        <span className="text-green-600">Complete</span>
+                      )}
+                      {progress.status === 'error' && (
+                        <span className="text-red-600">Error</span>
+                      )}
                     </div>
                   </div>
-                  <div className="w-24 text-right text-sm">
-                    {progress.status === 'preparing' && (
-                      <span className="text-yellow-600">Preparing...</span>
-                    )}
-                    {progress.status === 'uploading' && (
-                      <span className="text-blue-600">Uploading...</span>
-                    )}
-                    {progress.status === 'complete' && (
-                      <span className="text-green-600">Complete</span>
-                    )}
-                    {progress.status === 'error' && (
-                      <span className="text-red-600">Error</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="flex flex-col gap-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-[400px]">
-                <TabsList>
-                  <TabsTrigger value="all">All Resumes</TabsTrigger>
-                  <TabsTrigger value="pending">Pending</TabsTrigger>
-                  <TabsTrigger value="processed">Processed</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-            <div className="flex items-center gap-2">
-              {activeTab === 'pending' && resumes.some(r => r.status === 'pending') && (
-                <Button
-                  onClick={handleProcessAll}
-                  disabled={processingAll}
-                  variant="default"
-                  className="h-9 bg-primary hover:bg-primary/90 text-white"
-                >
-                  {processingAll ? (
-                    <>
-                      <span className="animate-spin mr-2">⏳</span>
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="h-4 w-4 mr-2" />
-                      Process All
-                    </>
-                  )}
-                </Button>
-              )}
-              {resumes.length > 0 && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="h-9"
-                      disabled={deletingAll}
-                    >
-                      {deletingAll ? (
-                        <>
-                          <span className="animate-spin mr-2">⏳</span>
-                          Deleting...
-                        </>
-                      ) : (
-                        <>
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete All
-                        </>
-                      )}
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete all {resumes.length} resumes
-                        from the system.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={handleDeleteAll}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        Delete All
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              )}
-              <Button
-                variant={viewMode === 'table' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setViewMode('table')}
-                className="h-9"
-              >
-                <Table className="h-4 w-4 mr-2" />
-                Table View
-              </Button>
-              <Button
-                variant={viewMode === 'card' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setViewMode('card')}
-                className="h-9"
-              >
-                <LayoutGrid className="h-4 w-4 mr-2" />
-                Card View
-              </Button>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="flex-1 flex items-center gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="Search by filename, status, or date..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 h-9"
-                />
-              </div>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "h-9 min-w-[120px] max-w-[180px] justify-start text-left font-normal",
-                      !selectedDate && "text-muted-foreground"
-                    )}
-                  >
-                    <Calendar className="mr-2 h-4 w-4 shrink-0" />
-                    <span className="truncate">
-                      {selectedDate ? format(selectedDate, "PPP") : "Pick date"}
-                    </span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <CalendarComponent
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              {selectedDate && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedDate(undefined)}
-                  className="h-9 px-2 hover:bg-destructive/10 hover:text-destructive"
-                >
-                  Clear
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      ) : filteredResumes.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground bg-muted/30 rounded-lg">
-          <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-          <p className="text-lg font-medium">
-            {searchQuery ? 'No resumes found matching your search.' : 'No resumes found.'}
-          </p>
-          <p className="text-sm mt-2">Upload some resumes to get started.</p>
-        </div>
-      ) : viewMode === 'table' ? (
-        <div className="rounded-lg border shadow-sm overflow-hidden bg-card">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-muted/50 border-b">
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground">Filename</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground">Size</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground">Uploaded</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground">Status</th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold text-muted-foreground">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {currentItems.map((resume) => (
-                  <tr key={resume._id} className="hover:bg-muted/50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <FileText className="h-5 w-5 text-muted-foreground" />
-                        <span className="font-medium">{resume.filename}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-muted-foreground">
-                      {(resume.size / 1024).toFixed(1)} KB
-                    </td>
-                    <td className="px-6 py-4 text-sm text-muted-foreground">
-                      {new Date(resume.uploadDate).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={cn(
-                        "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium",
-                        resume.status === 'pending' 
-                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' 
-                          : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                      )}>
-                        {resume.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex justify-end gap-2">
-                        {resume.status === 'pending' && (
-                          <Button
-                            size="sm"
-                            variant="default"
-                            onClick={() => handleProcessSingle(resume)}
-                            className="h-8 bg-primary text-white"
-                            disabled={processingAll}
-                          >
-                            {processingAll ? 'Processing...' : 'Process'}
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleUpdate(resume._id, resume.status === 'pending' ? 'reviewed' : 'pending')}
-                          className="h-8"
-                        >
-                          {resume.status === 'pending' ? 'Mark Reviewed' : 'Mark Pending'}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleDelete(resume._id)}
-                          className="h-8"
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
                 ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30">
-              <div className="text-sm text-muted-foreground">
-                Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredResumes.length)} of {filteredResumes.length} entries
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="h-8"
-                >
-                  Previous
-                </Button>
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <Button
-                      key={page}
-                      variant={currentPage === page ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => handlePageChange(page)}
-                      className="h-8 w-8 p-0"
-                    >
-                      {page}
-                    </Button>
-                  ))}
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="h-8"
-                >
-                  Next
-                </Button>
               </div>
             </div>
           )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredResumes.map((resume) => (
-            <div
-              key={resume._id}
-              className="rounded-xl border bg-card/80 backdrop-blur-sm p-6 hover:shadow-lg transition-all duration-200"
-            >
-              <div className="space-y-4">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1.5">
-                    <h3 className="text-lg font-semibold tracking-tight">{resume.filename}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {(resume.size / 1024).toFixed(1)} KB
-                    </p>
-                  </div>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                    ${resume.status === 'pending' 
-                      ? 'bg-yellow-100/80 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' 
-                      : 'bg-green-100/80 text-green-800 dark:bg-green-900/30 dark:text-green-300'}`}>
-                    {resume.status}
-                  </span>
+
+          <div className="flex flex-col gap-4">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-[400px]">
+                  <TabsList>
+                    <TabsTrigger value="all">All Resumes</TabsTrigger>
+                    <TabsTrigger value="pending">Pending</TabsTrigger>
+                    <TabsTrigger value="processed">Processed</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={handleProcessAll}
+                  disabled={processingAll || resumes.filter(r => r.status === 'pending').length === 0}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {processingAll ? (
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : <FileText className="w-4 h-4 mr-2" />}
+                  Process All
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex-1 flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Search by filename, status, or date..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 h-9"
+                  />
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Uploaded: {new Date(resume.uploadDate).toLocaleString()}
-                </p>
-                <div className="flex flex-col gap-2 pt-2">
-                  {resume.status === 'pending' && (
+                <Popover>
+                  <PopoverTrigger asChild>
                     <Button
-                      size="sm"
-                      variant="default"
-                      onClick={() => handleProcessSingle(resume)}
-                      className="w-full h-9 font-medium bg-primary text-white"
-                      disabled={processingAll}
+                      variant="outline"
+                      className={cn(
+                        "h-9 min-w-[120px] max-w-[180px] justify-start text-left font-normal",
+                        !selectedDate && "text-muted-foreground"
+                      )}
                     >
-                      {processingAll ? 'Processing...' : 'Process'}
+                      <Calendar className="mr-2 h-4 w-4 shrink-0" />
+                      <span className="truncate">
+                        {selectedDate ? format(selectedDate, "PPP") : "Pick date"}
+                      </span>
                     </Button>
-                  )}
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={setSelectedDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                {selectedDate && (
                   <Button
+                    variant="ghost"
                     size="sm"
-                    variant="outline"
-                    onClick={() => handleUpdate(resume._id, resume.status === 'pending' ? 'reviewed' : 'pending')}
-                    className="w-full h-9 font-medium"
+                    onClick={() => setSelectedDate(undefined)}
+                    className="h-9 px-2 hover:bg-destructive/10 hover:text-destructive"
                   >
-                    {resume.status === 'pending' ? 'Mark Reviewed' : 'Mark Pending'}
+                    Clear
                   </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : filteredResumes.length === 0 ? (
+          <div className="text-center py-16 text-muted-foreground bg-muted/30 rounded-lg">
+            <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+            <p className="text-lg font-medium">
+              {searchQuery ? 'No resumes found matching your search.' : 'No resumes found.'}
+            </p>
+            <p className="text-sm mt-2">Upload some resumes to get started.</p>
+          </div>
+        ) : viewMode === 'table' ? (
+          <div className="rounded-lg border shadow-sm overflow-hidden bg-card">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-muted/50 border-b">
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground">Filename</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground">Size</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground">Uploaded</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground">Status</th>
+                    <th className="px-6 py-4 text-right text-sm font-semibold text-muted-foreground">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {currentItems.map((resume) => (
+                    <tr key={resume._id} className="hover:bg-muted/50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <FileText className="h-5 w-5 text-muted-foreground" />
+                          <span className="font-medium">{resume.filename}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-muted-foreground">
+                        {(resume.size / 1024).toFixed(1)} KB
+                      </td>
+                      <td className="px-6 py-4 text-sm text-muted-foreground">
+                        {new Date(resume.uploadDate).toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={cn(
+                          "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium",
+                          resume.status === 'pending' 
+                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' 
+                            : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                        )}>
+                          {resume.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleProcessSingle(resume)}
+                            disabled={resume.status !== 'pending' || !!resume.processingStatus}
+                            className="bg-green-500 hover:bg-green-600 text-white w-full"
+                          >
+                            {resume.processingStatus === 'processing' ? 'Processing...' : 'Process'}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleUpdate(resume._id, resume.status === 'pending' ? 'reviewed' : 'pending')}
+                            className="h-8"
+                          >
+                            {resume.status === 'pending' ? 'Mark Reviewed' : 'Mark Pending'}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDelete(resume._id)}
+                            className="h-8"
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/30">
+                <div className="text-sm text-muted-foreground">
+                  Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredResumes.length)} of {filteredResumes.length} entries
+                </div>
+                <div className="flex items-center gap-2">
                   <Button
+                    variant="outline"
                     size="sm"
-                    variant="destructive"
-                    onClick={() => handleDelete(resume._id)}
-                    className="w-full h-9 font-medium"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="h-8"
                   >
-                    Delete
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(page)}
+                        className="h-8 w-8 p-0"
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="h-8"
+                  >
+                    Next
                   </Button>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredResumes.map((resume) => (
+              <div
+                key={resume._id}
+                className="rounded-xl border bg-card/80 backdrop-blur-sm p-6 hover:shadow-lg transition-all duration-200"
+              >
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1.5">
+                      <h3 className="text-lg font-semibold tracking-tight">{resume.filename}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {(resume.size / 1024).toFixed(1)} KB
+                      </p>
+                    </div>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                      ${resume.status === 'pending' 
+                        ? 'bg-yellow-100/80 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' 
+                        : 'bg-green-100/80 text-green-800 dark:bg-green-900/30 dark:text-green-300'}`}>
+                      {resume.status}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Uploaded: {new Date(resume.uploadDate).toLocaleString()}
+                  </p>
+                  <div className="flex flex-col gap-2 pt-2">
+                    <Button
+                      size="sm"
+                      onClick={() => handleProcessSingle(resume)}
+                      disabled={resume.status !== 'pending' || !!resume.processingStatus}
+                      className="bg-green-500 hover:bg-green-600 text-white w-full"
+                    >
+                      {resume.processingStatus === 'processing' ? 'Processing...' : 'Process'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleUpdate(resume._id, resume.status === 'pending' ? 'reviewed' : 'pending')}
+                      className="w-full h-9 font-medium"
+                    >
+                      {resume.status === 'pending' ? 'Mark Reviewed' : 'Mark Pending'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDelete(resume._id)}
+                      className="w-full h-9 font-medium"
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 } 
