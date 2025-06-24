@@ -6,6 +6,10 @@ export function initializePdfWorker() {
   if (typeof window !== "undefined") {
     // Only configure the worker on the client-side
     GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+  } else {
+    // Server-side configuration
+    // Explicitly disable the worker to prevent errors in Vercel
+    GlobalWorkerOptions.workerSrc = '';
   }
 }
 
@@ -14,6 +18,9 @@ export async function extractTextFromPdfData(
   pdfData: Uint8Array
 ): Promise<string> {
   try {
+    // Ensure worker is initialized before processing
+    initializePdfWorker();
+    
     const loadingTask = getDocument({
       data: pdfData,
       // Disable worker on the server-side to prevent errors in Vercel
