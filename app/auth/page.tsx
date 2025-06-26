@@ -40,7 +40,7 @@ export default function AuthPage() {
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-8">
         <div className="max-w-md mx-auto space-y-8">
           <div className="space-y-4">
-            <h1 className="text-4xl font-bold text-primary">JobTune</h1>
+            <h1 className="text-4xl font-bold text-primary">RecruAI</h1>
             <p className="text-xl text-muted-foreground">
               AI-Powered Human Resource Management System
             </p>
@@ -98,7 +98,7 @@ export default function AuthPage() {
           
           <div className="pt-8 border-t">
             <p className="text-sm text-muted-foreground">
-              Join thousands of HR professionals who trust JobTune to streamline their hiring process.
+              Join thousands of HR professionals who trust RecruAI to streamline their hiring process.
             </p>
           </div>
         </div>
@@ -108,7 +108,7 @@ export default function AuthPage() {
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <div className="text-center mb-8 lg:hidden">
-            <h1 className="text-3xl font-bold text-primary mb-2">JobTune</h1>
+            <h1 className="text-3xl font-bold text-primary mb-2">RecruAI</h1>
             <p className="text-muted-foreground">
               AI-Powered Human Resource Management
             </p>

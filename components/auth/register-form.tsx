@@ -85,7 +85,7 @@ export default function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
       // Use auth context to login
       login(result.user);
       
-      toast.success('Registration successful! Welcome to JobTune.');
+      toast.success('Registration successful! Welcome to RecruAI.');
       router.push('/dashboard');
       
     } catch (error) {

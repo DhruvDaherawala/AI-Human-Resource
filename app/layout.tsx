@@ -56,7 +56,7 @@ function RootLayoutContent({ children }: { children: React.ReactNode }) {
                 href="/" 
                 className="inline-flex items-center px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-all duration-200 font-semibold tracking-tight smooth-scroll text-xl"
               >
-                JobTune
+                RecruAI
               </Link>
               <nav className="ml-auto flex items-center gap-4 sm:gap-6">
                 {user ? (

@@ -77,7 +77,7 @@ export function Sidebar({ className }: SidebarProps) {
               <Building className="h-5 w-5 text-white" />
             </div>
             <span className="font-bold text-xl bg-blue-500 bg-clip-text text-transparent">
-              JobTune
+              RecruAI
             </span>
           </Link>
         )}
