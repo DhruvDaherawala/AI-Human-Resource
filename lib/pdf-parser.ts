@@ -1,6 +1,10 @@
+import { CloudCog } from "lucide-react";
+
 export async function extractTextFromBase64PDF(base64Str: string): Promise<string> {
   try {
     console.log('📥 Decoding base64 PDF...');
+
+    // console.log("Testing Dvd hello:::::::::::::::::::::::::::::::::::::");
     
     // Validate base64 string
     if (!base64Str || typeof base64Str !== 'string') {
